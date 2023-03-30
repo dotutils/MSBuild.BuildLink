@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Newtonsoft.Json.Linq;
+using NugetUtils;
 
 namespace Runner.NugetStats
 {
@@ -43,12 +44,11 @@ namespace Runner.NugetStats
                     {
                         throw new Exception("Unsupported repo type: " + repoType);
                     }
-                    string repoRef = GetChildPropertyValue(repoProp, "Ref");
+                    string revisionRef = GetChildPropertyValue(repoProp, "Ref");
                     string owner = GetChildPropertyValue(repoProp, "Owner");
                     string repoName = GetChildPropertyValue(repoProp, "Repo");
 
-                    record.RemoteRef = repoRef;
-                    record.RemoteUrl = $"github.com/{owner}/{repoName}.git";
+                    record.SourceLocation = new GithubRepoLocationInfo(owner, repoName, revisionRef);
                 }
                 yield return record;
             }
@@ -64,8 +64,7 @@ namespace Runner.NugetStats
             public NugetStatsRecordMap()
             {
                 AutoMap(CultureInfo.InvariantCulture);
-                Map(m => m.RemoteRef).Ignore();
-                Map(m => m.RemoteUrl).Ignore();
+                Map(m => m.SourceLocation).Ignore();
             }
         }
     }
@@ -76,8 +75,7 @@ namespace Runner.NugetStats
         public SourceLinkResult SourceLinkResult { get; set; }
         public CompilerFlagsResult CompilerFlagsResult { get; set; }
         public string SourceUrlRepoInfo { get; set; }
-        public string RemoteUrl { get; set; }
-        public string RemoteRef { get; set; }
+        public GithubRepoLocationInfo SourceLocation { get; set; }
     }
 
     public enum SourceLinkResult

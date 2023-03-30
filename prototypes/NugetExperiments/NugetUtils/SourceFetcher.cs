@@ -16,14 +16,13 @@ namespace NugetUtils
 
         public SourceFetcher(string sourcesRoot = "src") => _sourcesRoot = sourcesRoot;
 
-        public string FetchRepo(string remote, string revision)
+        public string FetchRepo(GithubRepoLocationInfo locationInfo)
         {
-            remote = "https://" + remote;
-            string localPath = Path.Combine(_sourcesRoot, GetLocalPath(remote));
+            string localPath = Path.GetFullPath(Path.Combine(_sourcesRoot, GetLocalPath(locationInfo)));
             string repoPath;
             if (!Path.Exists(localPath))
             {
-                repoPath = Repository.Clone(remote, Path.Combine(_sourcesRoot, GetLocalPath(remote)),
+                repoPath = Repository.Clone(locationInfo.Location.ToString(), localPath,
                     new CloneOptions()
                     {
                         //BranchName = revision,
@@ -36,19 +35,14 @@ namespace NugetUtils
             }
 
             using var repo = new Repository(repoPath);
-            Commands.Checkout(repo, revision);
+            Commands.Checkout(repo, locationInfo.RevisionRef);
             return localPath;
         }
 
         //"https://github.com/libgit2/libgit2sharp.git"
-        private static string GetLocalPath(string remote)
+        private static string GetLocalPath(GithubRepoLocationInfo locationInfo)
         {
-            if (remote.EndsWith(".git", StringComparison.InvariantCultureIgnoreCase))
-            {
-                remote = remote.Substring(0, remote.Length - ".git".Length);
-            }
-
-            return string.Join('-', remote.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries).TakeLast(2));
+            return $"{locationInfo.Owner}-{locationInfo.RepoName}";
         }
     }
 }
