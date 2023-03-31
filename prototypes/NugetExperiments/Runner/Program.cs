@@ -13,24 +13,40 @@ namespace Runner
     {
         static void Main(string[] args)
         {
-            ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            ImagesComparer imagesComparer = new ImagesComparer(loggerFactory);
-            //Console.WriteLine(imagesComparer.AreEqualExceptSignature(
+            //ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            //ImagesComparer imagesComparer = new ImagesComparer(loggerFactory);
+            ////Console.WriteLine(imagesComparer.AreEqualExceptSignature(
+            ////    @"C:\Users\jankrivanek\Downloads\newtonsoft.json.13.0.3\lib\net6.0\Newtonsoft.Json.dll",
+            ////    @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\Newtonsoft.Json.dll"));
+
+            //Console.WriteLine(imagesComparer.GetSimilarityScore(
             //    @"C:\Users\jankrivanek\Downloads\newtonsoft.json.13.0.3\lib\net6.0\Newtonsoft.Json.dll",
-            //    @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\Newtonsoft.Json.dll"));
+            //    @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
+            //Console.WriteLine(imagesComparer.GetSimilarityScore(
+            //    @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll",
+            //    @"C:\trash\build\JamesNK-Newtonsoft.Json4\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
+            //Console.WriteLine(imagesComparer.GetSimilarityScore(
+            //    @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll",
+            //    @"C:\trash\build\JamesNK-Newtonsoft.Json5\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
 
-            Console.WriteLine(imagesComparer.GetSimilarityScore(
-                @"C:\Users\jankrivanek\Downloads\newtonsoft.json.13.0.3\lib\net6.0\Newtonsoft.Json.dll",
-                @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
-            Console.WriteLine(imagesComparer.GetSimilarityScore(
-                @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll",
-                @"C:\trash\build\JamesNK-Newtonsoft.Json4\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
-            Console.WriteLine(imagesComparer.GetSimilarityScore(
-                @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll",
-                @"C:\trash\build\JamesNK-Newtonsoft.Json5\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
+            //return;
 
-            return;
+            //int i = 0;
+            //int skippedCount = 0;
+            //foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats())
+            //{
+            //    if (nugetStatsRecord.Item2 == null)
+            //    {
+            //        Console.WriteLine(++i + ": skipped - no repo info");
+            //        skippedCount++;
+            //        continue;
+            //    }
 
+            //    Console.WriteLine(++i + ": " + nugetStatsRecord.Item2.Location + "    " + nugetStatsRecord.Item2.RevisionRef);
+            //}
+            //Console.WriteLine($"Total: {i}, Skipped: {skippedCount}");
+
+            FetchAllCodes();
 
             //FetchCode();
             //return;
@@ -43,9 +59,9 @@ namespace Runner
             int skippedCount = 0;
             foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats())
             {
-                if (nugetStatsRecord.Item2 == null)
+                if (nugetStatsRecord.Item2 == null || string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
                 {
-                    Console.WriteLine(++i + ": skipped - no repo info");
+                    Console.WriteLine($"{++i} : skipped - no {(nugetStatsRecord.Item2 == null ? "repo" : "revision")} info");
                     skippedCount++;
                     continue;
                 }
