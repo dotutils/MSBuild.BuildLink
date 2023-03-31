@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using ImageUtils;
 using Microsoft.Extensions.Logging;
 using NugetUtils;
@@ -14,20 +15,49 @@ namespace Runner
         {
             ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             ImagesComparer imagesComparer = new ImagesComparer(loggerFactory);
-            Console.WriteLine(imagesComparer.AreEqualExceptSignature(
+            //Console.WriteLine(imagesComparer.AreEqualExceptSignature(
+            //    @"C:\Users\jankrivanek\Downloads\newtonsoft.json.13.0.3\lib\net6.0\Newtonsoft.Json.dll",
+            //    @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\Newtonsoft.Json.dll"));
+
+            Console.WriteLine(imagesComparer.GetSimilarityScore(
                 @"C:\Users\jankrivanek\Downloads\newtonsoft.json.13.0.3\lib\net6.0\Newtonsoft.Json.dll",
-                @"C:\trash\build\JamesNK-Newtonsoft.Json\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
+                @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
+            Console.WriteLine(imagesComparer.GetSimilarityScore(
+                @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll",
+                @"C:\trash\build\JamesNK-Newtonsoft.Json4\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
+            Console.WriteLine(imagesComparer.GetSimilarityScore(
+                @"C:\trash\build\JamesNK-Newtonsoft.Json3\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll",
+                @"C:\trash\build\JamesNK-Newtonsoft.Json5\Src\Newtonsoft.Json\bin\Release\net6.0\Newtonsoft.Json.dll"));
 
             return;
 
 
-            FetchCode();
-            return;
+            //FetchCode();
+            //return;
+        }
 
-            foreach (NugetStatsRecord nugetStatsRecord in StatsParser.FetchTopStats())
+        static void FetchAllCodes()
+        {
+            SourceFetcher sf = new SourceFetcher();
+            int i = 0;
+            int skippedCount = 0;
+            foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats())
             {
-                Console.WriteLine(nugetStatsRecord.SourceLocation.Location + "    " + nugetStatsRecord.SourceLocation.RevisionRef);
+                if (nugetStatsRecord.Item2 == null)
+                {
+                    Console.WriteLine(++i + ": skipped - no repo info");
+                    skippedCount++;
+                    continue;
+                }
+
+                Console.WriteLine(++i + ": " + nugetStatsRecord.Item2.Location + "    " + nugetStatsRecord.Item2.RevisionRef);
+                sf.FetchRepo(nugetStatsRecord.Item2);
             }
+
+            Console.WriteLine();
+            Console.WriteLine(" ======================= done ========================");
+            Console.WriteLine();
+            Console.WriteLine($"Total: {i}, Skipped: {skippedCount}");
         }
 
         static void FetchCode()

@@ -31,6 +31,24 @@ namespace ImageUtils
 
             try
             {
+                uint certCount = 0;
+                using (var originalFileStream = File.Open(originalFile, FileMode.Open, FileAccess.Read))
+                {
+                    if (!CertificateRemoverNativeApi.ImageEnumerateCertificates(originalFileStream.SafeFileHandle, CertificateRemoverNativeApi.CERT_SECTION_TYPE_ANY, ref certCount, IntPtr.Zero, IntPtr.Zero))
+                    {
+                        _logger.LogInformation($"{originalFile} is not a PE32/64 signed file.");
+                        return originalFile;
+                    }
+                    else
+                    {
+                        if (certCount <= 0)
+                        {
+                            _logger.LogInformation($"{originalFile} is not signed.");
+                            return originalFile;
+                        }
+                    }
+                }
+
                 var tempPath = Path.GetTempPath();
 
                 var tempFileName =
@@ -41,32 +59,14 @@ namespace ImageUtils
                 File.Copy(originalFile, unsignedFileName);
                 File.SetAttributes(unsignedFileName, FileAttributes.Normal);
 
-                FileInfo unsignedFile = new FileInfo(unsignedFileName);
-
                 using (var unsignedFileStream = File.Open(unsignedFileName, FileMode.Open, FileAccess.ReadWrite))
                 {
-                    uint certCount = 0;
-
-                    if (!CertificateRemoverNativeApi.ImageEnumerateCertificates(unsignedFileStream.SafeFileHandle, CertificateRemoverNativeApi.CERT_SECTION_TYPE_ANY, ref certCount, IntPtr.Zero, IntPtr.Zero))
+                    for (uint certIndex = 0; certIndex < certCount; certIndex++)
                     {
-                        _logger.LogInformation($"{originalFile} is not a PE32/64 signed file.");
-                    }
-                    else
-                    {
-                        if (certCount > 0)
+                        if (!CertificateRemoverNativeApi.ImageRemoveCertificate(unsignedFileStream.SafeFileHandle, certIndex))
                         {
-                            for (uint certIndex = 0; certIndex < certCount; certIndex++)
-                            {
-                                if (!CertificateRemoverNativeApi.ImageRemoveCertificate(unsignedFileStream.SafeFileHandle, certIndex))
-                                {
-                                    _logger.LogInformation($"Could not remove certificate from {originalFile} file.");
-                                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"{originalFile} is not signed.");
+                            _logger.LogInformation($"Could not remove certificate from {originalFile} file.");
+                            Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
                         }
                     }
                 }

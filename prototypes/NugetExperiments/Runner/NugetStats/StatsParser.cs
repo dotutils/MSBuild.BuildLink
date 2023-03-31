@@ -18,13 +18,14 @@ namespace Runner.NugetStats
     {
         public const string StatsPath = @"NugetStats\packages-stats.csv";
 
-        public static IEnumerable<NugetStatsRecord> FetchTopStats(string path = StatsPath)
+        public static IEnumerable<(NugetStatsRecord, GithubRepoLocationInfo?)> FetchTopStats(string path = StatsPath)
         {
             using var reader = new StreamReader(path);
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
             csv.Context.RegisterClassMap<NugetStatsRecordMap>();
             foreach (var record in csv.GetRecords<NugetStatsRecord>())
             {
+                GithubRepoLocationInfo? repoLocation = null;
                 // exclude '[]'
                 if ((record.SourceLinkResult == SourceLinkResult.ValidExternal || record.SourceLinkResult == SourceLinkResult.Valid)
                     &&
@@ -48,9 +49,9 @@ namespace Runner.NugetStats
                     string owner = GetChildPropertyValue(repoProp, "Owner");
                     string repoName = GetChildPropertyValue(repoProp, "Repo");
 
-                    record.SourceLocation = new GithubRepoLocationInfo(owner, repoName, revisionRef);
+                    repoLocation = new GithubRepoLocationInfo(owner, repoName, revisionRef);
                 }
-                yield return record;
+                yield return (record, repoLocation);
             }
         }
 
@@ -64,7 +65,7 @@ namespace Runner.NugetStats
             public NugetStatsRecordMap()
             {
                 AutoMap(CultureInfo.InvariantCulture);
-                Map(m => m.SourceLocation).Ignore();
+                // Map(m => m.SourceLocation).Ignore();
             }
         }
     }
@@ -75,7 +76,6 @@ namespace Runner.NugetStats
         public SourceLinkResult SourceLinkResult { get; set; }
         public CompilerFlagsResult CompilerFlagsResult { get; set; }
         public string SourceUrlRepoInfo { get; set; }
-        public GithubRepoLocationInfo SourceLocation { get; set; }
     }
 
     public enum SourceLinkResult

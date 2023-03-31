@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,11 +25,41 @@ namespace ImageUtils
 
         public bool AreEqualExceptSignature(string imagePathOfficial, string imagePathLocal)
         {
-            string unsignedCopy = _certificateRemover.GetUnsignedFile(imagePathOfficial);
+            // local file should be unsigned - but it might not
+            return FileEquals(GetUnsignedCopy(imagePathOfficial), GetUnsignedCopy(imagePathLocal));
+            // TODO: File.Delete(unsignedCopy); - if it's copied
+        }
+
+        public double GetSimilarityScore(string imagePathOfficial, string imagePathLocal)
+        {
+            string officialUnsigned = GetUnsignedCopy(imagePathOfficial);
+            string localUnsigned = GetUnsignedCopy(imagePathLocal);
+
+            string similarities = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+
+            if (!WindiffWrapper.DumpSimilaritiesFile(officialUnsigned, localUnsigned, similarities))
+            {
+                return -1;
+            }
+
+            string localProcessed = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+            if (!WindiffWrapper.DumpSimilaritiesFile(localUnsigned, localUnsigned, localProcessed))
+            {
+                localProcessed = localUnsigned;
+            }
+
+            long localSize = new FileInfo(localProcessed).Length;
+            long similaritiesSize = new FileInfo(similarities).Length;
+
+            return ((double)similaritiesSize) / localSize;
+        }
+
+        private string GetUnsignedCopy(string filePath)
+        {
+            string unsignedCopy = _certificateRemover.GetUnsignedFile(filePath);
             _peNullifier.NullifyPESignatureBytes(unsignedCopy);
-            // local file should be unsigned
-            return FileEquals(unsignedCopy, imagePathLocal);
-            // TODO: File.Delete(unsignedCopy);
+
+            return unsignedCopy;
         }
 
         static bool FileEquals(string fileName1, string fileName2)
@@ -63,6 +94,62 @@ namespace ImageUtils
                 // You might replace the following with an efficient "memcmp"
                 if (!buffer1.Take(count1).SequenceEqual(buffer2.Take(count2)))
                     return false;
+            }
+        }
+
+
+        private static class WindiffWrapper
+        {
+            private static readonly bool _isWindiffAvailable = IsWindiffAvailable();
+
+            public static bool DumpSimilaritiesFile(string file1, string file2, string similaritiesFileToCreate)
+            {
+                if (!_isWindiffAvailable)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    return RunWindiff($"-FIX {similaritiesFileToCreate} {file1} {file2}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
+
+            private static bool IsWindiffAvailable()
+            {
+                return RunWindiff(string.Empty);
+            }
+
+            private static bool RunWindiff(string args)
+            {
+                var p = new ProcessStartInfo
+                {
+                    FileName = "windiff",
+                    Arguments = args,
+                    //RedirectStandardInput = true,
+                    //RedirectStandardError = true,
+                    //RedirectStandardOutput = true,
+                    UseShellExecute = false
+                };
+
+                var process = Process.Start(p);
+
+                if (process == null)
+                {
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(args) || !process.WaitForExit(TimeSpan.FromSeconds(2)))
+                {
+                    process.Kill(true);
+                }
+
+                return string.IsNullOrEmpty(args) || process.ExitCode == 0;
             }
         }
     }
