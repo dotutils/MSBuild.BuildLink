@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using BuildUtils;
 using ImageUtils;
 using Microsoft.Extensions.Logging;
 using NugetUtils;
@@ -48,8 +49,43 @@ namespace Runner
 
             FetchAllCodes();
 
+            GetBuildFiles();
+
             //FetchCode();
             //return;
+        }
+
+        static void GetBuildFiles()
+        {
+            foreach (string dir in Directory.EnumerateDirectories(SourceFetcher.Root, "*", SearchOption.TopDirectoryOnly))
+            {
+                string packageName = Path.GetFileName(dir).Split('#', 2)[1];
+                var res = BuildRecipeFinder.DiscoverBuildFiles(dir, packageName);
+                Console.WriteLine($"========================= {packageName} =========================");
+                Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
+                Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
+                Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
+                Console.WriteLine($"===================================================================");
+            }
+
+            //SourceFetcher sf = new SourceFetcher();
+            //foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats())
+            //{
+            //    if (nugetStatsRecord.Item2 == null || string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
+            //    {
+            //        continue;
+            //    }
+
+            //    string repoRoot = sf.FetchRepo(nugetStatsRecord.Item2);
+            //    string packageName = nugetStatsRecord.Item1.Id;
+            //    var res = BuildRecipeFinder.DiscoverBuildFiles(repoRoot, packageName);
+
+            //    Console.WriteLine($"========================= {packageName} =========================");
+            //    Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
+            //    Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
+            //    Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
+            //    Console.WriteLine($"===================================================================");
+            //}
         }
 
         static void FetchAllCodes()
@@ -74,6 +110,9 @@ namespace Runner
             Console.WriteLine(" ======================= done ========================");
             Console.WriteLine();
             Console.WriteLine($"Total: {i}, Skipped: {skippedCount}");
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine(" =====================================================");
         }
 
         static void FetchCode()

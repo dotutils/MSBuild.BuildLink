@@ -12,9 +12,10 @@ namespace NugetUtils
 {
     public class SourceFetcher
     {
+        public const string Root = @"C:\src-nugets";   
         private readonly string _sourcesRoot;
 
-        public SourceFetcher(string sourcesRoot = "src") => _sourcesRoot = sourcesRoot;
+        public SourceFetcher(string sourcesRoot = Root) => _sourcesRoot = sourcesRoot;
 
         public string FetchRepo(GithubRepoLocationInfo locationInfo)
         {
@@ -34,15 +35,30 @@ namespace NugetUtils
                 repoPath = Path.Combine(localPath, ".git");
             }
 
-            using var repo = new Repository(repoPath);
-            Commands.Checkout(repo, locationInfo.RevisionRef);
+            // do not replace with using statement - as in debug mode it pushes dispose
+            //  behind the leftover folder deletion which causes issues in LibGitSharp
+            using (var repo = new Repository(repoPath))
+            {
+                Commands.Checkout(repo, locationInfo.RevisionRef);
+            }
+
+            // https://github.com/dotnet/Nerdbank.GitVersioning/issues/396 workaround
+            {
+                string? leftoverDir = Directory.EnumerateDirectories(localPath).FirstOrDefault(p =>
+                    Path.GetFileName(p).Contains("_git2_", StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(leftoverDir))
+                {
+                    Directory.Delete(leftoverDir);
+                }
+            }
+
             return localPath;
         }
 
         //"https://github.com/libgit2/libgit2sharp.git"
         private static string GetLocalPath(GithubRepoLocationInfo locationInfo)
         {
-            return $"{locationInfo.Owner}-{locationInfo.RepoName}";
+            return $"{locationInfo.Owner}#{locationInfo.RepoName}";
         }
     }
 }

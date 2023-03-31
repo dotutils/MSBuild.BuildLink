@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BuildUtils\BuildUtils.csproj" />
     <ProjectReference Include="..\ImageUtils\ImageUtils.csproj" />
     <ProjectReference Include="..\NugetUtils\NugetUtils.csproj" />
   </ItemGroup>
