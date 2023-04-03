@@ -5,6 +5,7 @@ using System.Diagnostics;
 using BuildUtils;
 using ImageUtils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NugetUtils;
 using Runner.NugetStats;
 
@@ -47,7 +48,7 @@ namespace Runner
             //}
             //Console.WriteLine($"Total: {i}, Skipped: {skippedCount}");
 
-            FetchAllCodes();
+            //FetchAllCodes();
 
             GetBuildFiles();
 
@@ -55,37 +56,72 @@ namespace Runner
             //return;
         }
 
+        private static void LogError(Exception e, string s)
+        {
+            Console.WriteLine($"{s} |||| Exc: {e.Message}");
+        }
+
+        //public static IEnumerable<string> EnumerateFiles(string inputDir, string pattern, SearchOption searchOption)
+        //{
+
+        //    try
+        //    {
+        //        return Directory.EnumerateFiles(inputDir, pattern, searchOption);
+
+        //    }
+        //    catch (ArgumentException ae)
+        //    {
+        //        _logger.LogError(ae, $"Invalid path {inputDir}, cannot search it recursively.");
+        //    }
+        //    catch (DirectoryNotFoundException dnfe)
+        //    {
+        //        _logger.LogError(dnfe, $"Directory {inputDir} is not found");
+        //    }
+        //    catch (PathTooLongException ptle)
+        //    {
+        //        _logger.LogError(ptle, $"Path is too long, cannot search recurisively {inputDir} folder");
+        //    }
+        //    catch (UnauthorizedAccessException uae)
+        //    {
+        //        _logger.LogError(uae, $"Cannot authorize, cannot search recurisively {inputDir} folder");
+        //    }
+
+        //    return Enumerable.Empty<string>();
+        //}
+
         static void GetBuildFiles()
         {
-            foreach (string dir in Directory.EnumerateDirectories(SourceFetcher.Root, "*", SearchOption.TopDirectoryOnly))
-            {
-                string packageName = Path.GetFileName(dir).Split('#', 2)[1];
-                var res = BuildRecipeFinder.DiscoverBuildFiles(dir, packageName);
-                Console.WriteLine($"========================= {packageName} =========================");
-                Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
-                Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
-                Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
-                Console.WriteLine($"===================================================================");
-            }
-
-            //SourceFetcher sf = new SourceFetcher();
-            //foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats())
+            //foreach (string dir in Directory.EnumerateDirectories(SourceFetcher.Root, "*", SearchOption.TopDirectoryOnly))
             //{
-            //    if (nugetStatsRecord.Item2 == null || string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
-            //    {
-            //        continue;
-            //    }
-
-            //    string repoRoot = sf.FetchRepo(nugetStatsRecord.Item2);
-            //    string packageName = nugetStatsRecord.Item1.Id;
-            //    var res = BuildRecipeFinder.DiscoverBuildFiles(repoRoot, packageName);
-
+            //    string packageName = Path.GetFileName(dir).Split('#', 2)[1];
+            //    var res = BuildRecipeFinder.DiscoverBuildFiles(dir, packageName);
             //    Console.WriteLine($"========================= {packageName} =========================");
             //    Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
             //    Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
             //    Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
             //    Console.WriteLine($"===================================================================");
             //}
+
+            SourceFetcher sf = new SourceFetcher();
+            foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats()
+                         .Where(nugetStatsRecord => nugetStatsRecord.Item2 != null && !string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
+                         .OrderBy(n => n.Item2.Owner + "#" + n.Item2.RepoName))
+            {
+                if (nugetStatsRecord.Item2 == null || string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
+                {
+                    continue;
+                }
+
+                string repoRoot = sf.FetchRepo(nugetStatsRecord.Item2);
+                string packageName = nugetStatsRecord.Item1.Id;
+                var res = BuildRecipeFinder.DiscoverBuildFiles(repoRoot, packageName, Path.GetFileNameWithoutExtension(nugetStatsRecord.Item1.Path));
+
+                Console.WriteLine($"========================= {packageName} =========================");
+                Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
+                Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
+                Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
+                Console.WriteLine($"===================================================================");
+            }
         }
 
         static void FetchAllCodes()

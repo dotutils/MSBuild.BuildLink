@@ -111,6 +111,7 @@ namespace Runner.NugetStats
         public CompilerFlagsResult CompilerFlagsResult { get; set; }
         public string SourceUrlRepoInfo { get; set; }
         public string RepositoryMetadata { get; set; }
+        public string Path { get; set; }
     }
 
     public enum SourceLinkResult
