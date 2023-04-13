@@ -12,10 +12,12 @@ namespace NugetUtils
 {
     public class SourceFetcher
     {
-        public const string Root = @"C:\src-nugets";   
+        public const string DefaultRoot = @"C:\src-nugets";
+        public const string AlternativeRoot = @"C:\src-nugets-noref";
         private readonly string _sourcesRoot;
+        
 
-        public SourceFetcher(string sourcesRoot = Root) => _sourcesRoot = sourcesRoot;
+        public SourceFetcher(string sourcesRoot = DefaultRoot) => _sourcesRoot = sourcesRoot;
 
         public string FetchRepo(GithubRepoLocationInfo locationInfo)
         {
@@ -39,7 +41,7 @@ namespace NugetUtils
             //  behind the leftover folder deletion which causes issues in LibGitSharp
             using (var repo = new Repository(repoPath))
             {
-                Commands.Checkout(repo, locationInfo.RevisionRef);
+                Commands.Checkout(repo, string.IsNullOrEmpty(locationInfo.RevisionRef) ? repo.Head.FriendlyName : locationInfo.RevisionRef);
             }
 
             // https://github.com/dotnet/Nerdbank.GitVersioning/issues/396 workaround

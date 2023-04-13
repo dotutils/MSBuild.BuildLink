@@ -50,7 +50,10 @@ namespace Runner
 
             //FetchAllCodes();
 
+            //GetNoShaBuildFiles();
+
             GetBuildFiles();
+
 
             //FetchCode();
             //return;
@@ -91,27 +94,28 @@ namespace Runner
 
         static void GetBuildFiles()
         {
-            //foreach (string dir in Directory.EnumerateDirectories(SourceFetcher.Root, "*", SearchOption.TopDirectoryOnly))
-            //{
-            //    string packageName = Path.GetFileName(dir).Split('#', 2)[1];
-            //    var res = BuildRecipeFinder.DiscoverBuildFiles(dir, packageName);
-            //    Console.WriteLine($"========================= {packageName} =========================");
-            //    Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
-            //    Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
-            //    Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
-            //    Console.WriteLine($"===================================================================");
-            //}
+            GetBuildFilesHelper(
+                new SourceFetcher(),
+                StatsParser.FetchTopStats()
+                    .Where(nugetStatsRecord => nugetStatsRecord.Item2 != null &&
+                                               !string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
+                    .OrderBy(n => n.Item2.Owner + "#" + n.Item2.RepoName));
+        }
 
-            SourceFetcher sf = new SourceFetcher();
-            foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats()
-                         .Where(nugetStatsRecord => nugetStatsRecord.Item2 != null && !string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
-                         .OrderBy(n => n.Item2.Owner + "#" + n.Item2.RepoName))
+        static void GetNoShaBuildFiles()
+        {
+            GetBuildFilesHelper(
+                new SourceFetcher(SourceFetcher.AlternativeRoot),
+                StatsParser.FetchTopStats()
+                    .Where(nugetStatsRecord => nugetStatsRecord.Item2 != null &&
+                                               string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
+                    .OrderBy(n => n.Item2.Owner + "#" + n.Item2.RepoName));
+        }
+
+        static void GetBuildFilesHelper(SourceFetcher sf, IEnumerable<(NugetStatsRecord, GithubRepoLocationInfo)> nugetStatsRecords)
+        {
+            foreach ((NugetStatsRecord, GithubRepoLocationInfo) nugetStatsRecord in nugetStatsRecords)
             {
-                if (nugetStatsRecord.Item2 == null || string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
-                {
-                    continue;
-                }
-
                 string repoRoot = sf.FetchRepo(nugetStatsRecord.Item2);
                 string packageName = nugetStatsRecord.Item1.Id;
                 var res = BuildRecipeFinder.DiscoverBuildFiles(repoRoot, packageName, Path.GetFileNameWithoutExtension(nugetStatsRecord.Item1.Path));
@@ -139,6 +143,33 @@ namespace Runner
                 }
 
                 Console.WriteLine(++i + ": " + nugetStatsRecord.Item2.Location + "    " + nugetStatsRecord.Item2.RevisionRef);
+                sf.FetchRepo(nugetStatsRecord.Item2);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine(" ======================= done ========================");
+            Console.WriteLine();
+            Console.WriteLine($"Total: {i}, Skipped: {skippedCount}");
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine(" =====================================================");
+        }
+
+        static void FetchAllCodesWithoutSha()
+        {
+            SourceFetcher sf = new SourceFetcher(SourceFetcher.AlternativeRoot);
+            int i = 0;
+            int skippedCount = 0;
+            foreach ((NugetStatsRecord, GithubRepoLocationInfo?) nugetStatsRecord in StatsParser.FetchTopStats())
+            {
+                if (nugetStatsRecord.Item2 == null || !string.IsNullOrEmpty(nugetStatsRecord.Item2.RevisionRef))
+                {
+                    Console.WriteLine($"{++i} : skipped - no {(nugetStatsRecord.Item2 == null ? "repo" : "revision")} info");
+                    skippedCount++;
+                    continue;
+                }
+
+                Console.WriteLine(++i + ": " + nugetStatsRecord.Item2.Location + "    " /*+ nugetStatsRecord.Item2.RevisionRef*/);
                 sf.FetchRepo(nugetStatsRecord.Item2);
             }
 
