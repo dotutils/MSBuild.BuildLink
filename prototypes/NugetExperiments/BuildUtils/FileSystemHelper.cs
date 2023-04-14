@@ -17,10 +17,29 @@ namespace BuildUtils
 
         public FileSystemHelper(ILogger logger) => _logger = logger;
 
-        public IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string> allowedExtensions)
+        public void CopyFilesRecursively(string sourcePath, string targetPath)
         {
-            return EnumerateFiles(inputDir, "*", SearchOption.AllDirectories, true)
-                .Where(file => allowedExtensions.Contains(Path.GetExtension(file)));
+            foreach (string dirPath in EnumerateDirectories(sourcePath, SearchOption.AllDirectories, true))
+            {
+                Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
+            }
+
+            foreach (string newPath in EnumerateFiles(sourcePath))
+            {
+                File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
+            }
+        }
+
+        public IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null)
+        {
+            var res = EnumerateFiles(inputDir, "*", SearchOption.AllDirectories, true);
+
+            if (allowedExtensions != null && allowedExtensions.Any())
+            {
+                res = res.Where(file => allowedExtensions.Contains(Path.GetExtension(file), StringComparer.CurrentCultureIgnoreCase));
+            }
+
+            return res;
         }
 
         public IEnumerable<string> EnumerateFiles(string inputDir, string pattern, SearchOption searchOption, bool skipDotDirs = false)
@@ -30,8 +49,26 @@ namespace BuildUtils
                     .Concat(
                         searchOption == SearchOption.TopDirectoryOnly
                             ? Enumerable.Empty<string>()
-                            : EnumerateDirectories(inputDir, skipDotDirs)
+                            : EnumerateTopLevelDirectories(inputDir, skipDotDirs)
                                 .SelectMany(d => EnumerateFilesInternal(d, pattern, searchOption))
+                    );
+        }
+        
+        public IEnumerable<string> EnumerateDirectories(string inputDir, SearchOption searchOption, bool skipDotDirs = false)
+        {
+            // enumerate top - as list, then concat it with enumeration per each
+            List<string> dirs = EnumerateTopLevelDirectories(inputDir, skipDotDirs);
+
+            if (searchOption == SearchOption.TopDirectoryOnly)
+            {
+                return dirs;
+            }
+
+            return
+                dirs
+                    .Concat(
+                        dirs
+                            .SelectMany(d => EnumerateDirectories(d, SearchOption.AllDirectories, false))
                     );
         }
 
@@ -47,16 +84,18 @@ namespace BuildUtils
             return files;
         }
 
-        private IEnumerable<string> EnumerateDirectories(string inputDir, bool skipDotDirs)
+        private static List<string> emptyList = new List<string>();
+
+        private List<string> EnumerateTopLevelDirectories(string inputDir, bool skipDotDirs)
         {
-            IEnumerable<string> files;
+            List<string> dirs;
             // Need to realize enumeration with ToList - in case of errors
-            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateDirectories(inputDir).Where(p => !skipDotDirs || !Path.GetFileName(p).StartsWith('.')).ToList(), out files))
+            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateDirectories(inputDir).Where(p => !skipDotDirs || !Path.GetFileName(p).StartsWith('.')).ToList(), out dirs))
             {
-                files = Enumerable.Empty<string>();
+                dirs = emptyList;
             }
 
-            return files;
+            return dirs;
         }
 
         private bool TryRunIoOperation<T>(string inputDir, Func<T> func, out T retVal)
@@ -101,7 +140,7 @@ namespace BuildUtils
             return
                 EnumerateFilesInternal(inputDir, pattern, SearchOption.TopDirectoryOnly)
                     .Concat(
-                        EnumerateDirectories(inputDir, false)
+                        EnumerateTopLevelDirectories(inputDir, false)
                             .SelectMany(d => EnumerateFilesInternal(d, pattern, searchOption))
                     );
         }

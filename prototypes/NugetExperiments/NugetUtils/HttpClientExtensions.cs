@@ -16,6 +16,7 @@ namespace NugetUtils
         public static async Task DownloadFileAsync(this HttpClient client, Uri uri, string fileName)
         {
             await using var s = await client.GetStreamAsync(uri).ConfigureAwait(false);
+            Directory.CreateDirectory(Path.GetDirectoryName(fileName));
             await using var fs = new FileStream(fileName, FileMode.CreateNew);
             await s.CopyToAsync(fs).ConfigureAwait(false);
         }

@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -13,9 +14,39 @@ namespace BuildUtils
         BuildScript
     }
 
+    public static class BuildTypeExtensions
+    {
+        public static string ToShortString(this BuildType buildType)
+            =>
+                buildType switch
+                {
+                    BuildType.ProjectFile => "Proj",
+                    BuildType.SolutionFile => "Sln",
+                    BuildType.BuildScript => "Script",
+                    _ => throw new ArgumentOutOfRangeException(nameof(buildType), buildType, null)
+                };
+
+        public static string ToShortAlignedString(this BuildType buildType)
+            =>
+                buildType switch
+                {
+                    BuildType.ProjectFile => "Proj  ",
+                    BuildType.SolutionFile => "Sln   ",
+                    BuildType.BuildScript => "Script",
+                    _ => throw new ArgumentOutOfRangeException(nameof(buildType), buildType, null)
+                };
+    }
+
     public class BuildRecipe
     {
-        private List<(BuildType, string)> buildFiles;
+        public BuildRecipe(Dictionary<BuildType, List<string>> buildFiles)
+        {
+            BuildFiles = buildFiles
+                .Where(d => d.Value is { Count: 1 })
+                .ToDictionary(p => p.Key, p => p.Value[0]);
+        }
+
+        public IReadOnlyDictionary<BuildType, string> BuildFiles { get; }
     }
 
     public static class BuildRecipeFinder
@@ -33,11 +64,7 @@ namespace BuildUtils
                 projectExtensions.Union(scriptExtensions).Union(new[] { slnExtension }).ToArray();
 
             var result =
-                fsHelper.EnumerateFiles(repoRoot, "*", SearchOption.AllDirectories, true)
-                //Directory.EnumerateFiles(repoRoot, "*", SearchOption.AllDirectories)
-                    .Where(
-                        p => extensionsOfInterest.Contains(Path.GetExtension(p),
-                            StringComparer.CurrentCultureIgnoreCase))
+                fsHelper.EnumerateFiles(repoRoot, extensionsOfInterest)
                     .GroupBy(p => Path.GetExtension(p) switch
                     {
                         { } extension when extension.Equals(slnExtension, StringComparison.CurrentCultureIgnoreCase) =>
@@ -81,7 +108,7 @@ namespace BuildUtils
         {
             //first in root, then in build, than in src, then in sources
 
-            //build (any other names?)
+            //localbuild, runbuild, build 
 
             //.ps1, .cmd, .bat (others not yet)
 
@@ -89,9 +116,20 @@ namespace BuildUtils
 
             int GetScriptFileAscendingRank(string fullPath)
             {
-                if (!Path.GetFileNameWithoutExtension(fullPath).Equals("build", StringComparison.InvariantCultureIgnoreCase))
+                int nameRank;
+                switch (Path.GetFileNameWithoutExtension(fullPath))
                 {
-                    return filterOutRank;
+                    case string d when d.Equals("localbuild", StringComparison.InvariantCultureIgnoreCase):
+                        nameRank = 1;
+                        break;
+                    case string d when d.Equals("runbuild", StringComparison.InvariantCultureIgnoreCase):
+                        nameRank = 2;
+                        break;
+                    case string d when d.Equals("build", StringComparison.InvariantCultureIgnoreCase):
+                        nameRank = 3;
+                        break;
+                    default:
+                        return filterOutRank;
                 }
 
                 int locationRank;
@@ -129,7 +167,7 @@ namespace BuildUtils
                         return filterOutRank;
                 }
 
-                return locationRank*10 + extensionRank;
+                return locationRank*100 + nameRank*10 + extensionRank;
             }
 
             var bestMatch = candidates
@@ -238,8 +276,10 @@ namespace BuildUtils
         private static List<string> FilterPathsByParentFolder(string parentFolder, List<string> paths)
         {
             //TODO: OSes with case sensitive paths
-            return paths.Select(Path.GetDirectoryName)
-                .Where(p => p.Equals(parentFolder, StringComparison.CurrentCultureIgnoreCase)).ToList();
+            return paths.Select(p => (dir:Path.GetDirectoryName(p), path:p))
+                .Where(p => p.dir.Equals(parentFolder, StringComparison.CurrentCultureIgnoreCase))
+                .Select(p => p.path)
+                .ToList();
         }
 
         private static bool TryGetAssemblyName(string path, out string assemblyName)

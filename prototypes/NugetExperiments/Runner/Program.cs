@@ -52,11 +52,72 @@ namespace Runner
 
             //GetNoShaBuildFiles();
 
-            GetBuildFiles();
+            //GetBuildFiles();
 
+            //TestNugetDownloader().Wait();
+
+            //TestBuild_Grpc();
+            // TestBuild_Newtonsoft();
 
             //FetchCode();
             //return;
+        }
+
+        //TODO: extract the lib folder for each package, then get the binaries as list and search in build outputs
+        // - evaluate build success as combination of success and presence of the binaries (what if just some?)
+        // - get the comparisons
+        // - flush the list
+
+        private static async Task TestNugetDownloader()
+        {
+            NugetDownloader nd = new NugetDownloader();
+            //string s = await nd.GetLatestVersion("newtonsoft.json");
+
+            //string path = await nd.DownloadPackage("newtonsoft.json");
+
+            foreach ((NugetStatsRecord, GithubRepoLocationInfo) tuple in StatsParser.FetchTopStats()
+                         .Where(nugetStatsRecord => nugetStatsRecord.Item2 != null))
+            {
+                await nd.DownloadPackage(tuple.Item1.Id, tuple.Item1.Version);
+            }
+        }
+
+        private static void TestBuild_Newtonsoft()
+        {
+            BuildRecipe recipe = new BuildRecipe(
+                new Dictionary<BuildType, List<string>>()
+                {
+                    { BuildType.SolutionFile, new List<string>() { @"C:\src-nugets\JamesNK#Newtonsoft.Json\Src\Newtonsoft.Json.sln" } },
+                    { BuildType.ProjectFile, new List<string>() { @"C:\src-nugets\JamesNK#Newtonsoft.Json\Src\Newtonsoft.Json\Newtonsoft.Json.csproj" } },
+                    { BuildType.BuildScript, new List<string>() { @"C:\src-nugets\JamesNK#Newtonsoft.Json\Build\localbuild.ps1" } },
+                });
+
+            TestBuild(recipe, @"C:\src-nugets\JamesNK#Newtonsoft.Json", "Newtonsoft.Json-13.0.3");
+        }
+
+        private static void TestBuild_Grpc()
+        {
+            BuildRecipe recipe = new BuildRecipe(
+                new Dictionary<BuildType, List<string>>()
+                {
+                    { BuildType.SolutionFile, new List<string>() { @"C:\src-nugets\grpc#grpc-dotnet\Grpc.DotNet.sln" } },
+                    { BuildType.ProjectFile, new List<string>() { @"C:\src-nugets\grpc#grpc-dotnet\src\Grpc.Core.Api\Grpc.Core.Api.csproj" } },
+                    { BuildType.BuildScript, new List<string>() },
+                });
+
+            TestBuild(recipe, @"C:\src-nugets\grpc#grpc-dotnet", "Grpc.Core.Api-2.52.0");
+        }
+
+        private static void TestBuild(BuildRecipe recipe, string repoRoot, string nugetId)
+        {
+            using ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            ILogger logger = loggerFactory.CreateLogger<Program>();
+
+            BuildHelperFactory bhf = new BuildHelperFactory(logger);
+            var buildHelper = bhf.CreateBuildHelper(repoRoot, nugetId, recipe);
+
+            //buildHelper.TryBuild(BuildType.ProjectFile, SdkVer.net6, recipe.BuildFiles[BuildType.ProjectFile]);
+            var r = buildHelper.RunBuilds(SdkVer.net6);
         }
 
         private static void LogError(Exception e, string s)
@@ -118,12 +179,14 @@ namespace Runner
             {
                 string repoRoot = sf.FetchRepo(nugetStatsRecord.Item2);
                 string packageName = nugetStatsRecord.Item1.Id;
+
                 var res = BuildRecipeFinder.DiscoverBuildFiles(repoRoot, packageName, Path.GetFileNameWithoutExtension(nugetStatsRecord.Item1.Path));
 
                 Console.WriteLine($"========================= {packageName} =========================");
-                Console.WriteLine($"Sln   : {string.Join(',', res[BuildType.SolutionFile])}");
-                Console.WriteLine($"Proj  : {string.Join(',', res[BuildType.ProjectFile])}");
-                Console.WriteLine($"Script: {string.Join(',', res[BuildType.BuildScript])}");
+                foreach (BuildType bt in Enum.GetValues(typeof(BuildType)))
+                {
+                    Console.WriteLine($"{bt.ToShortAlignedString()}: {string.Join(',', res[bt])}");
+                }
                 Console.WriteLine($"===================================================================");
             }
         }

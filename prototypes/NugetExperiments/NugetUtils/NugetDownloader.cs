@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LibGit2Sharp;
+using Newtonsoft.Json.Linq;
 
 namespace NugetUtils
 {
@@ -17,25 +19,32 @@ namespace NugetUtils
         public NugetDownloader(string? baseUrl = null, string? cacheDir = null)
         {
             _baseUrl = baseUrl ?? "https://api.nuget.org/v3-flatcontainer/";
-            _cacheDir = cacheDir ?? "nugets";
+            _cacheDir = cacheDir ?? @"C:\nugets";
         }
 
-        public NugetDownloader() { }
+        //public NugetDownloader() { }
 
-        public void Foo(string packageName, string? version)
+        public async Task<string> DownloadPackage(string packageName, string? version = null)
         {
-            version = version ?? GetLatestVersion(packageName);
+            version ??= await GetLatestVersion(packageName);
 
-            //todo: cache + latest from cache arg
+            string fileName = Path.Combine(_cacheDir, $"{packageName}-{version}.zip");
 
-            string downloadEndpoint = $"{_baseUrl}{packageName}/{version}/{packageName}.{version}.nupkg";
-            HttpClientExtensions.SharedHttpClient.DownloadFileAsync(new Uri(downloadEndpoint),
-                $"{packageName}-{version}");
+            if (!File.Exists(fileName))
+            {
+                string downloadEndpoint = $"{_baseUrl}{packageName}/{version}/{packageName}.{version}.nupkg".ToLower();
+                await HttpClientExtensions.SharedHttpClient.DownloadFileAsync(new Uri(downloadEndpoint), fileName);
+            }
+
+            return fileName;
         }
 
-        private static string GetLatestVersion(string packageName)
+        public async Task<string> GetLatestVersion(string packageName)
         {
-            throw new NotImplementedException("TBD");
+            string json = await HttpClientExtensions.SharedHttpClient.GetStringAsync($"{_baseUrl}{packageName}/index.json");
+            var obj = JObject.Parse(json);
+            string latestVersion = obj.Values().First(v => v.Path == "versions").Last().ToString();
+            return latestVersion;
         }
     }
 }

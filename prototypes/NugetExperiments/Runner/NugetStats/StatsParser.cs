@@ -112,6 +112,7 @@ namespace Runner.NugetStats
         public string SourceUrlRepoInfo { get; set; }
         public string RepositoryMetadata { get; set; }
         public string Path { get; set; }
+        public string Version { get; set; }
     }
 
     public enum SourceLinkResult
