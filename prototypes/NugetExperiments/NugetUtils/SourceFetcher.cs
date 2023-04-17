@@ -41,7 +41,16 @@ namespace NugetUtils
             //  behind the leftover folder deletion which causes issues in LibGitSharp
             using (var repo = new Repository(repoPath))
             {
-                Commands.Checkout(repo, string.IsNullOrEmpty(locationInfo.RevisionRef) ? repo.Head.FriendlyName : locationInfo.RevisionRef);
+                Commands.Checkout(repo, GetCommitHashOrBranch(locationInfo.RevisionRef, repo));
+            }
+
+            string GetCommitHashOrBranch(string revisionRef, LibGit2Sharp.Repository repo)
+            {
+                return string.IsNullOrEmpty(locationInfo.RevisionRef)
+                    ? (repo.Head.FriendlyName.Equals("(no branch)", StringComparison.InvariantCultureIgnoreCase)
+                        ? repo.Head.Reference.TargetIdentifier
+                        : repo.Head.FriendlyName)
+                    : locationInfo.RevisionRef;
             }
 
             // https://github.com/dotnet/Nerdbank.GitVersioning/issues/396 workaround
