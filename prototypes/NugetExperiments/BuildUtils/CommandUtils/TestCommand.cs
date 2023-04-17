@@ -34,6 +34,14 @@ namespace BuildUtils.CommandUtils
 
         protected Dictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
 
+        public int MaxMillisecondsToWait { get; set; } = Timeout.Infinite;
+
+        public TimeSpan MaxTimespanToWait
+        {
+            get { return TimeSpan.FromMicroseconds(MaxMillisecondsToWait); }
+            set { MaxMillisecondsToWait = (int)value.TotalMicroseconds; }
+        }
+
         internal TestCommand WithEnvironmentVariable(string name, string value)
         {
             Environment[name] = value;
@@ -82,7 +90,7 @@ namespace BuildUtils.CommandUtils
                 command.OnOutputLine(CommandOutputHandler);
             }
 
-            var result = command.Execute(ProcessStartedHandler);
+            var result = command.Execute(ProcessStartedHandler, MaxMillisecondsToWait);
 
             _loggerWrapper.WriteLine($"> {result.StartInfo.FileName} {result.StartInfo.Arguments}");
             _loggerWrapper.WriteLine(result.StdOut);

@@ -20,7 +20,7 @@ namespace BuildUtils
 
     public class BuildHelperFactory
     {
-        public const string DefaultRoot = @"C:\nugets-build";
+        public const string DefaultRoot = @"C:\nugets-build-noSha";
         private readonly string _buildRoot;
         private readonly ILogger _logger;
 
@@ -103,13 +103,17 @@ namespace BuildUtils
         {
             IEnumerable<SdkVer> versions = sdkVer != null ? new[] { sdkVer.Value } : Enum.GetValues<SdkVer>();
 
+            // Greedy enumerate - to prevent swapping with other tasks
+            List<BuildResult> results = new List<BuildResult>();
             foreach (var sdk in versions)
             {
                 foreach (var recipe in _buildRecipe.BuildFiles)
                 {
-                    yield return TryBuild(recipe.Key, sdk, recipe.Value);
+                    results.Add(TryBuild(recipe.Key, sdk, recipe.Value));
                 }
             }
+
+            return results;
         }
 
         //Hardcoded hack (should get installed versions, possibly install needed one)
@@ -153,10 +157,15 @@ namespace BuildUtils
                 cmd = new DotnetBuildCommand(_logger, buildFile, "-c", "Release");
             }
 
+            cmd.WorkingDirectory = Path.GetDirectoryName(buildFile);
+            cmd.MaxTimespanToWait = TimeSpan.FromMinutes(8);
+            string cwd = Environment.CurrentDirectory;
             CommandResult result = cmd.Execute();
-            File.WriteAllText(Path.Combine(_repoRoot, "ReconstructionBuildResult.log"), result.ToString());
+            Environment.CurrentDirectory = cwd;
+            File.WriteAllText(Path.Combine(destFolder, "ReconstructionBuild.log"),
+                $"Command args: {string.Join(' ', cmd.Arguments)}" + Environment.NewLine + result.ToString());
             //still might not mean success - as script can have errors but running of the powershell process succeeds
-            bool succeeded = result.ExitCode != 0;
+            bool succeeded = result.ExitCode == 0;
 
             return new BuildResult(sdkVer, buildType, succeeded, destFolder);
         }

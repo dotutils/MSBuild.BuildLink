@@ -31,7 +31,7 @@ namespace BuildUtils.CommandUtils
             return Execute(_ => { });
         }
 
-        public CommandResult Execute(Action<Process>? processStarted)
+        public CommandResult Execute(Action<Process>? processStarted, int maxMillisecondsWait = Timeout.Infinite)
         {
             Console.WriteLine($"Running {_process.StartInfo.FileName} {_process.StartInfo.Arguments}");
             ThrowIfRunning();
@@ -55,7 +55,10 @@ namespace BuildUtils.CommandUtils
 
                 var taskOut = _stdOut?.BeginRead(_process.StandardOutput);
                 var taskErr = _stdErr?.BeginRead(_process.StandardError);
-                _process.WaitForExit();
+                if (!_process.WaitForExit(maxMillisecondsWait))
+                {
+                    _process.Kill(true);
+                }
 
                 taskOut?.Wait();
                 taskErr?.Wait();

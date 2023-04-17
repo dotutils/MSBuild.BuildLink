@@ -27,6 +27,7 @@ namespace BuildUtils.CommandUtils
 
         public override string ToString() => $"""
 Exit Code: {ExitCode}
+Command: {StartInfo.FileName} Args: {string.Join(' ', StartInfo.ArgumentList)}
 Std Out:
 =================================
 {StdOut}

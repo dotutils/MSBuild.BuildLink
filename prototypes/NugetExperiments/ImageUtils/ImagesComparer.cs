@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,6 +23,9 @@ namespace ImageUtils
             _peNullifier = new DotnetAssemblyPESignatureNullifier(loggerFactory);
             _certificateRemover = new CertificateRemover(loggerFactory);
         }
+
+        public static bool AreContentsIdentical(string file1, string file2)
+            => File.ReadAllBytes(file1).SequenceEqual(File.ReadAllBytes(file2));
 
         public bool AreEqualExceptSignature(string imagePathOfficial, string imagePathLocal)
         {
@@ -111,7 +115,7 @@ namespace ImageUtils
 
                 try
                 {
-                    return RunWindiff($"-FIX {similaritiesFileToCreate} {file1} {file2}");
+                    return RunWindiff($"-FIX \"{similaritiesFileToCreate}\" \"{file1}\" \"{file2}\"");
                 }
                 catch (Exception e)
                 {
@@ -144,7 +148,7 @@ namespace ImageUtils
                     return false;
                 }
 
-                if (string.IsNullOrEmpty(args) || !process.WaitForExit(TimeSpan.FromSeconds(2)))
+                if (string.IsNullOrEmpty(args) || !process.WaitForExit(TimeSpan.FromSeconds(2*60)))
                 {
                     process.Kill(true);
                 }

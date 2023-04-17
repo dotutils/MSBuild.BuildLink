@@ -17,9 +17,9 @@ namespace BuildUtils
 
         public FileSystemHelper(ILogger logger) => _logger = logger;
 
-        public void CopyFilesRecursively(string sourcePath, string targetPath)
+        public void CopyFilesRecursively(string sourcePath, string targetPath, bool skipTopDotDirs = false)
         {
-            foreach (string dirPath in EnumerateDirectories(sourcePath, SearchOption.AllDirectories, true))
+            foreach (string dirPath in EnumerateDirectories(sourcePath, SearchOption.AllDirectories, skipTopDotDirs))
             {
                 Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
             }
@@ -30,9 +30,9 @@ namespace BuildUtils
             }
         }
 
-        public IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null)
+        public IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null, bool skipTopDotDirs = false)
         {
-            var res = EnumerateFiles(inputDir, "*", SearchOption.AllDirectories, true);
+            var res = EnumerateFiles(inputDir, "*", SearchOption.AllDirectories, skipTopDotDirs);
 
             if (allowedExtensions != null && allowedExtensions.Any())
             {
@@ -76,7 +76,11 @@ namespace BuildUtils
         {
             IEnumerable<string> files;
             // Need to realize enumeration with ToList - in case of errors
-            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateFiles(inputDir, pattern, searchOption).ToList(), out files))
+            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateFiles(inputDir, pattern, new EnumerationOptions()
+                {
+                    AttributesToSkip = default,
+                    RecurseSubdirectories = searchOption == SearchOption.AllDirectories
+            }).ToList(), out files))
             {
                 files = EnumerateFilesHelper(inputDir, pattern, searchOption);
             }
@@ -90,7 +94,13 @@ namespace BuildUtils
         {
             List<string> dirs;
             // Need to realize enumeration with ToList - in case of errors
-            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateDirectories(inputDir).Where(p => !skipDotDirs || !Path.GetFileName(p).StartsWith('.')).ToList(), out dirs))
+            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateDirectories(inputDir, "*",
+                        new EnumerationOptions()
+                        {
+                            AttributesToSkip = default,
+                            RecurseSubdirectories = false
+                        })
+                    .Where(p => !skipDotDirs || !Path.GetFileName(p).StartsWith('.')).ToList(), out dirs))
             {
                 dirs = emptyList;
             }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,9 +23,13 @@ namespace NugetUtils
             _cacheDir = cacheDir ?? @"C:\nugets";
         }
 
-        //public NugetDownloader() { }
+        public async Task<string> DownloadAndExtractPackage(string packageName, string? version = null)
+        {
+            string fileName = await DownloadPackage(packageName, version);
+            return ExtractPackage(fileName);
+        }
 
-        public async Task<string> DownloadPackage(string packageName, string? version = null)
+        private async Task<string> DownloadPackage(string packageName, string? version = null)
         {
             version ??= await GetLatestVersion(packageName);
 
@@ -37,6 +42,28 @@ namespace NugetUtils
             }
 
             return fileName;
+        }
+
+        private string ExtractPackage(string filename)
+        {
+            string destinationDir = Path.Combine(_cacheDir, "extracted", Path.GetFileNameWithoutExtension(filename));
+
+            if (!Directory.Exists(destinationDir))
+            {
+                ZipFile.ExtractToDirectory(filename, destinationDir);
+                foreach (string file in Directory.EnumerateFiles(destinationDir))
+                {
+                    File.Delete(file);
+                }
+
+                foreach (string dir in Directory.EnumerateDirectories(destinationDir)
+                             .Where(n => !Path.GetFileName(n).Equals("lib", StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    Directory.Delete(dir, true);
+                }
+            }
+
+            return Path.Combine(destinationDir, "lib");
         }
 
         public async Task<string> GetLatestVersion(string packageName)
