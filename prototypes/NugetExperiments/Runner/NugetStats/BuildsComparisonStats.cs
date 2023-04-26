@@ -21,10 +21,10 @@ namespace Runner.NugetStats
         // to be added: HasReusableCompilerFlags, PointsToRepo, PointsToSha
 
         public string NugetId { get; set; }
-        public SdkVer SdkMajor { get; set; }
-        public BuildType BuildType { get; set; }
+        public SdkVer? SdkMajor { get; set; }
+        public BuildType? BuildType { get; set; }
         public bool BuildSuccess { get; set; }
-        public string Artifact { get; set; }
+        public string? Artifact { get; set; }
         public bool HasArtifact { get; set; }
         public double DiffToOfficial { get; set; }
         public double DiffToOtherSdk { get; set; }

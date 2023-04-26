@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using BuildUtils;
 using ImageUtils;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,13 @@ namespace Runner
     {
         static void Main(string[] args)
         {
+
+            ExperimentWithStats();
+
+            //MergeStats();
+
+            return;
+
             //ImagesComparer imagesComparer = new ImagesComparer(loggerFactory);
             ////Console.WriteLine(imagesComparer.AreEqualExceptSignature(
             ////    @"C:\Users\jankrivanek\Downloads\newtonsoft.json.13.0.3\lib\net6.0\Newtonsoft.Json.dll",
@@ -68,6 +76,142 @@ namespace Runner
 
             Console.WriteLine("All done");
             Console.ReadKey();
+        }
+
+        private static void ExperimentWithStats()
+        {
+            //foreach (var st in BuildsComparisonStatsParser.FetchExStats(@"C:\synced\OneDrive - Microsoft\issues\packageSourcing\stats\MergedStatsEx.csv"))
+            //{
+            //    Console.WriteLine(st.Artifact);
+            //}
+
+            var stats = BuildsComparisonStatsParser
+                .FetchExStats(@"C:\synced\OneDrive - Microsoft\issues\packageSourcing\stats\MergedStatsEx.csv")
+                .ToList();
+
+            //var diff = stats.GroupBy(s => s.NugetId + "-" + s.BuildType + "-" + s.SdkMajor)
+            //    .Where(g => g.Select(s => s.HasArtifact).Distinct().Count() > 1)
+            //    .Select(g => g.Key);
+
+            //Console.WriteLine(string.Join(',', diff));
+
+            //Console.WriteLine(stats.Where(s => !s.PointsToRepo).Count());
+            //Console.WriteLine(stats.Where(s => !s.PointsToRepo && s.HasReusableCompilerFlags).Count());
+            //Console.WriteLine(stats.Where(s => !s.HasReusableCompilerFlags).GroupBy(g => g.NugetId).Count());
+
+            //Console.WriteLine(stats.Where(s => !s.HasReusableCompilerFlags && s.HasArtifact).GroupBy(g => g.NugetId).Count());
+
+            //Console.WriteLine(string.Join(',',
+            //    stats.GroupBy(s => s.NugetId).Where(g => g.All(si => !si.HasArtifact)).Select(g => g.Key)
+            //));
+
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Where(g => g.All(si => !si.HasArtifact)).Count());
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Where(g => g.All(si => !si.HasArtifact) && g.Any(f => f.HasReusableCompilerFlags)).Count());
+
+            //Console.WriteLine(string.Join(',',
+            //    stats.GroupBy(s => s.NugetId).Where(g => g.All(si => !si.HasArtifact) && g.Any(f => f.HasReusableCompilerFlags)).Select(g => g.Key)
+            //));
+
+            //
+            // Counts of nugets that has all, none or some artifacts buildable
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Count(g => g.Any(v => v.HasArtifact)));
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Count(g => g.All(v => v.HasArtifact)));
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Count(g => g.Any(v => !v.HasArtifact)));
+
+            //
+            // Counts of packages buildable by compiler flags; and subset of those that are not buildable by build-guess
+            //
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Count(g => g.Any(v => v.HasReusableCompilerFlags)));
+            //Console.WriteLine(stats.GroupBy(s => s.NugetId).Count(g => g.Any(v => v.HasReusableCompilerFlags) && g.All(v => !v.HasArtifact)));
+
+
+            //
+            // Counts of packages with repo info that are not buildable by compiler flags nor any build guess
+            //
+            //Console.WriteLine(
+            //    stats.GroupBy(s => s.NugetId).Count(g => g.Any(v => !v.HasReusableCompilerFlags && v.PointsToRepo) && g.All(v => !v.HasArtifact))
+            //);
+
+            //
+            // Count of nugets buildable by project
+            //
+            //Console.WriteLine(
+            //    stats.GroupBy(s => s.NugetId).Count(g => g.Any(v => v.BuildType == BuildType.ProjectFile && v.HasArtifact))
+            //);
+
+            //
+            // Get the ordered (by popularity) list of packages and their best build type and similarity score
+            //
+            //Console.WriteLine(
+            //    string.Join(Environment.NewLine,
+            //        stats.GroupBy(s => s.NugetId)
+            //            .OrderBy(g => g.First().PopularityRank)
+            //            .Select(g => (g.Key, GetBest(g)))
+            //            .Where(g => g.Item2.bestBuildType != null)
+            //            .Select(d => $"{d.Key},{d.Item2.bestBuildType.Value.ToShortString()},{d.Item2.topScore}")
+            //    ));
+
+
+            //
+            // Get the ordered list of biggest diffs between proj nad script
+            //
+            //Console.WriteLine(
+            //    string.Join(Environment.NewLine,
+            //        stats
+            //            .Where(s => s.BuildType == BuildType.ProjectFile && s.HasArtifact)
+            //            .Where(s => s.DiffToScript > 0)
+            //            .OrderBy(s => s.DiffToScript)
+            //            .Select(s => $"{s.NugetId}-{s.Artifact}-{s.SdkMajor}   {s.DiffToScript}")
+            //    ));
+
+            //
+            // Ordered list of artifact by their proj build score less bes build score
+            //
+            //Console.WriteLine(
+            //    string.Join(Environment.NewLine,
+            //        stats
+            //            .GroupBy(s => (s.NugetId, s.Artifact, s.SdkMajor))
+            //            .Where(g => g.Any(s => s.BuildType == BuildType.ProjectFile && s.HasArtifact))
+            //            .Select(g => (key: g.Key, best: GetBest(g),
+            //                projScore: g.Single(v => v.BuildType == BuildType.ProjectFile).DiffToOfficial))
+            //            .Select(g => (data: g, difference: g.best.topScore - g.projScore))
+            //            .OrderByDescending(g => g.difference)
+            //            .Select(g =>
+            //                $"{g.difference:0.###},({g.data.best.topScore:0.###} - {g.data.projScore:0.###}),{g.data.best.bestBuildType.Value.ToShortString()},{g.data.key.NugetId}:{g.data.key.Artifact}:{g.data.key.SdkMajor}")
+            //    ));
+
+            //int nugetsWithProjBuildIssues = stats
+            //    .GroupBy(s => (s.NugetId, s.Artifact, s.SdkMajor))
+            //    //not buildable by project
+            //    .Where(g => g.All(s => s.BuildType != BuildType.ProjectFile || !s.HasArtifact))
+            //    //but buildable somehow
+            //    .Where(g => g.Any(s => s.HasArtifact))
+            //    .GroupBy(g => g.Key.NugetId)
+            //    .Count();
+
+            // Packages (artifacts) with some proj build issues
+            //
+            Console.WriteLine(
+                string.Join(Environment.NewLine,
+                    stats
+                        .GroupBy(s => (s.NugetId, s.Artifact, s.SdkMajor))
+                        //not buildable by project
+                        .Where(g => g.All(s => s.BuildType != BuildType.ProjectFile || !s.HasArtifact))
+                        //but buildable somehow
+                        .Where(g => g.Any(s => s.HasArtifact))
+                        .Select(s => $"{s.Key.NugetId}:{s.Key.Artifact}:{s.Key.SdkMajor}")
+                ));
+        }
+
+        private static (BuildType? bestBuildType, double topScore) GetBest(IEnumerable<BuildsComparisonStatsEx> stats)
+        {
+            var s = stats.OrderByDescending(s => s.DiffToOfficial).First();
+            if (s.DiffToOfficial > 0)
+            {
+                return (s.BuildType, s.DiffToOfficial);
+            }
+
+            return (null, 0);
         }
 
         private static void MergeStats()

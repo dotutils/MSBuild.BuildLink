@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Microsoft.Build.PackageSourcing": {
+      "commandName": "Project",
+      "commandLineArgs": "test xyz --verbosity d"
+    }
+  }
+}
