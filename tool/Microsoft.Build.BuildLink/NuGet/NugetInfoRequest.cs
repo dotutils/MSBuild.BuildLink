@@ -10,16 +10,20 @@ public class NugetInfoRequest
         PackageName = packageName;
     }
 
-    public NugetInfoRequest(string packageName, string packageVersion)
+    public NugetInfoRequest(string packageName, string? packageVersion)
     {
         PackageName = packageName;
 
-        if (!NuGetVersion.TryParse(packageName, out NuGetVersion v))
+        if (!string.IsNullOrEmpty(packageVersion))
         {
-            throw new BuildLinkException($"Unrecognizable nuget version specified: '{packageVersion}'.",
-                BuildLinkErrorCode.InvalidOption);
+            if (!NuGetVersion.TryParse(packageName, out NuGetVersion v))
+            {
+                throw new BuildLinkException($"Unrecognizable nuget version specified: '{packageVersion}'.",
+                    BuildLinkErrorCode.InvalidOption);
+            }
+
+            PackageVersion = v;
         }
-        PackageVersion = v;
     }
 
     public string PackageName { get; init; }

@@ -2,7 +2,7 @@
   "profiles": {
     "Microsoft.Build.PackageSourcing": {
       "commandName": "Project",
-      "commandLineArgs": "test xyz --verbosity d"
+      "commandLineArgs": "get-sources Newtonsoft.Json --verbosity d"
     }
   }
 }

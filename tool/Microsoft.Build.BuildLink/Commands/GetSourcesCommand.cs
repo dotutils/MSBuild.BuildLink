@@ -24,6 +24,21 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         Description = "Version of the package",
     };
 
+    private readonly Option<string> _buildFilePathOption = new(new[] { "--build-descriptor" })
+    {
+        Description = "Path to the build descriptor file. Relative path resolved relative to repository root. Absolute path allows to use local file not located in repository",
+    };
+
+    private readonly Option<bool> _allowPrereleaseOption = new(new[] { "--include-prerelease" })
+    {
+        Description = "Allow prerelease version to be used",
+    };
+
+    private readonly Option<string> _packageSourceOption = new(new[] { "-s", "--source" })
+    {
+        Description = "Package source feed to be used to pull the nuget",
+    };
+
     public GetSourcesCommand()
         : base(CommandName, "Fetches the sources for the given package")
     {
@@ -35,7 +50,10 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
     {
         return new GetSourcesCommandArgs(
             parseResult.GetValueForArgument(_packageNameArgument),
-            parseResult.GetValueForOption(_packageVersionOption)
+            parseResult.GetValueForOption(_packageVersionOption),
+            parseResult.GetValueForOption(_buildFilePathOption),
+            parseResult.GetValueForOption(_allowPrereleaseOption),
+            parseResult.GetValueForOption(_packageSourceOption)
         );
     }
 }
@@ -54,9 +72,14 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
     public async Task<BuildLinkErrorCode> ExecuteAsync(GetSourcesCommandArgs args, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _logger.LogInformation("Running the test of {name}.", args.PackageName);
-        _logger.LogInformation("Ver: {version}.", args.PackageVersion);
-        //_logger.LogInformation("Injected: {foo}.", host.Services.GetRequiredService<IFoo>().Foo);
+        _logger.LogInformation("Obtaining the sources for {name}.{version}.", args.PackageName, args.PackageVersion);
+
+        NugetInfoRequest request = new(args.PackageName, args.PackageVersion)
+        {
+            AllowPrerelease = args.AllowPreRelease, PackageSource = args.PackageSource,
+        };
+
+        NugetInfo info = await _nugetInfoProvider.FetchNugetInfoAsync(request, cancellationToken).ConfigureAwait(false);
 
         return BuildLinkErrorCode.Success;
     }

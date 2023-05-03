@@ -167,6 +167,11 @@ namespace Microsoft.Build.BuildLink
                         services.AddSingleton<GetSourcesCommandHandler>();
                         services.AddSingleton<AddBuildMetadataCommandHandler>();
                         services.AddSingleton<IStderrWriter, DefaultStderrWriter>();
+                        services.AddSingleton<INugetInfoProvider, NugetInfoProvider>();
+                        services.AddSingleton<IPackageSourcesProvider, DotnetCommandPackageSourcesProvider>();
+                        services.AddSingleton<IEnvironment, DefaultEnvironment>();
+                        services.AddSingleton<NuGet.IFileSystem, NuGet.PhysicalFileSystem>();
+
                     });
                     host.ConfigureLogging(logging =>
                     {
