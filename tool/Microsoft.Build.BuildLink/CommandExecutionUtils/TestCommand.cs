@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
+//using Xunit.Abstractions;
 
 namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
@@ -11,10 +11,10 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
     {
         private readonly LoggerWrapper _loggerWrapper;
 
-        protected TestCommand(ITestOutputHelper log)
-        {
-            _loggerWrapper = new LoggerWrapper(log);
-        }
+        //protected TestCommand(ITestOutputHelper log)
+        //{
+        //    _loggerWrapper = new LoggerWrapper(log);
+        //}
 
         protected TestCommand(ILogger log)
         {
@@ -140,18 +140,18 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 
         private class LoggerWrapper
         {
-            private readonly ILogger? _logger;
-            private readonly ITestOutputHelper? _testHelper;
+            private readonly ILogger _logger;
+            //private readonly ITestOutputHelper? _testHelper;
 
             internal LoggerWrapper(ILogger logger)
             {
                 _logger = logger;
             }
 
-            internal LoggerWrapper(ITestOutputHelper logger)
-            {
-                _testHelper = logger;
-            }
+            //internal LoggerWrapper(ITestOutputHelper logger)
+            //{
+            //    _testHelper = logger;
+            //}
 
             internal void WriteLine(string? message)
             {
@@ -159,8 +159,8 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
                 {
                     return;
                 }
-                _logger?.Log(LogLevel.Information, message);
-                _testHelper?.WriteLine(message);
+                _logger.Log(LogLevel.Information, message);
+                //_testHelper?.WriteLine(message);
             }
         }
     }

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
+//using Xunit.Abstractions;
 
 namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
@@ -13,8 +13,8 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
         internal ExecutableCommand(ILogger log) : base(log)
         { }
 
-        internal ExecutableCommand(ITestOutputHelper log) : base(log)
-        { }
+        //internal ExecutableCommand(ITestOutputHelper log) : base(log)
+        //{ }
 
         private protected override SdkCommandSpec CreateCommand(IEnumerable<string> args)
         {
@@ -37,12 +37,12 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
             Arguments.AddRange(args);
         }
 
-        internal PowershellCommand(ITestOutputHelper log, string scriptPath, params string[] args) : base(log)
-        {
-            Arguments.Add("&");
-            Arguments.Add(scriptPath);
-            Arguments.AddRange(args);
-        }
+        //internal PowershellCommand(ITestOutputHelper log, string scriptPath, params string[] args) : base(log)
+        //{
+        //    Arguments.Add("&");
+        //    Arguments.Add(scriptPath);
+        //    Arguments.AddRange(args);
+        //}
 
         protected override string ExecutableFilePath => "powershell.exe";
     }
@@ -57,11 +57,11 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
             Arguments.AddRange(args);
         }
 
-        internal DotnetCommand(ITestOutputHelper log, string subcommand, params string[] args) : base(log)
-        {
-            Arguments.Add(subcommand);
-            Arguments.AddRange(args);
-        }
+        //internal DotnetCommand(ITestOutputHelper log, string subcommand, params string[] args) : base(log)
+        //{
+        //    Arguments.Add(subcommand);
+        //    Arguments.AddRange(args);
+        //}
 
         internal DotnetCommand WithoutTelemetry()
         {

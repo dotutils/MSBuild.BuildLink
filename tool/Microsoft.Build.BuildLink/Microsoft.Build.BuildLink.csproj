@@ -18,6 +18,23 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="System.CommandLine.Hosting" Version="0.4.0-alpha.22272.1" />
     <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
+
+    <PackageReference Include="NuGet.Protocol" Version="6.5.0" />
+    <!--<PackageReference Include="NuGetPackageExplorer.Types" Version="4.5.26" />-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="refs\NuGetPackageExplorer.Core.dll">
+      <Private>True</Private>
+    </Reference>
+
+    <Reference Include="refs\NuGetPackageExplorer.Types.dll">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="CommandExecutionUtils\" />
   </ItemGroup>
 
 </Project>

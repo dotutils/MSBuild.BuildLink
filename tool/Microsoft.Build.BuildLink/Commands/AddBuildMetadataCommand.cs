@@ -1,12 +1,13 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
+using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.Commands;
 
-internal class AddBuildMetadataCommand : ExecutableCommand<AddBuildMetadataCommandArgs>
+internal class AddBuildMetadataCommand : ExecutableCommand<AddBuildMetadataCommandArgs, AddBuildMetadataCommandHandler>
 {
     private const string CommandName = "add-build-metadata";
 
@@ -28,19 +29,6 @@ internal class AddBuildMetadataCommand : ExecutableCommand<AddBuildMetadataComma
         AddArgument(_repoRootPathArgument);
         AddOption(_overwriteOption);
     }
-    protected override async Task<int> ExecuteAsync(
-        AddBuildMetadataCommandArgs args,
-        IHost host,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ILogger logger = host.Services.GetRequiredService<ILogger<TestCommand>>();// loggerFactory.CreateLogger<TestCommand>();
-        logger.LogInformation("Running the test of {name}.", args.RepoRootPath);
-        logger.LogInformation("Ver: {version}.", args.OverwriteExisting);
-        logger.LogInformation("Injected: {foo}.", host.Services.GetRequiredService<IFoo>().Foo);
-
-        return 0;
-    }
 
     protected internal override AddBuildMetadataCommandArgs ParseContext(ParseResult parseResult)
     {
@@ -48,5 +36,23 @@ internal class AddBuildMetadataCommand : ExecutableCommand<AddBuildMetadataComma
             parseResult.GetValueForArgument(_repoRootPathArgument),
             parseResult.GetValueForOption(_overwriteOption)
         );
+    }
+}
+
+internal class AddBuildMetadataCommandHandler : ICommandExecutor<AddBuildMetadataCommandArgs>
+{
+    private readonly ILogger<AddBuildMetadataCommandHandler> _logger;
+
+    public AddBuildMetadataCommandHandler(ILogger<AddBuildMetadataCommandHandler> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task<BuildLinkErrorCode> ExecuteAsync(AddBuildMetadataCommandArgs args, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _logger.LogInformation("Running the test of {RepoRootPath}.", args.RepoRootPath);
+
+        return BuildLinkErrorCode.Success;
     }
 }

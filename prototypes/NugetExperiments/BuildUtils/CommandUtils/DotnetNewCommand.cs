@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
-namespace BuildUtils.CommandUtils
+namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
     internal class DotnetNewCommand : DotnetCommand
     {

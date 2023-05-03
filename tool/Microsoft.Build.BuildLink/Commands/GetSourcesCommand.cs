@@ -1,12 +1,14 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
+using Microsoft.Build.BuildLink.NuGet;
+using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.Commands;
 
-internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs>
+internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetSourcesCommandHandler>
 {
     private const string CommandName = "get-sources";
 
@@ -28,19 +30,6 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs>
         AddArgument(_packageNameArgument);
         AddOption(_packageVersionOption);
     }
-    protected override async Task<int> ExecuteAsync(
-        GetSourcesCommandArgs args,
-        IHost host,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ILogger logger = host.Services.GetRequiredService<ILogger<TestCommand>>();// loggerFactory.CreateLogger<TestCommand>();
-        logger.LogInformation("Running the test of {name}.", args.PackageName);
-        logger.LogInformation("Ver: {version}.", args.PackageVersion);
-        logger.LogInformation("Injected: {foo}.", host.Services.GetRequiredService<IFoo>().Foo);
-
-        return 0;
-    }
 
     protected internal override GetSourcesCommandArgs ParseContext(ParseResult parseResult)
     {
@@ -48,5 +37,27 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs>
             parseResult.GetValueForArgument(_packageNameArgument),
             parseResult.GetValueForOption(_packageVersionOption)
         );
+    }
+}
+
+internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs>
+{
+    private readonly ILogger<GetSourcesCommandHandler> _logger;
+    private readonly INugetInfoProvider _nugetInfoProvider;
+
+    public GetSourcesCommandHandler(ILogger<GetSourcesCommandHandler> logger, INugetInfoProvider nugetInfoProvider)
+    {
+        _logger = logger;
+        _nugetInfoProvider = nugetInfoProvider;
+    }
+
+    public async Task<BuildLinkErrorCode> ExecuteAsync(GetSourcesCommandArgs args, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _logger.LogInformation("Running the test of {name}.", args.PackageName);
+        _logger.LogInformation("Ver: {version}.", args.PackageVersion);
+        //_logger.LogInformation("Injected: {foo}.", host.Services.GetRequiredService<IFoo>().Foo);
+
+        return BuildLinkErrorCode.Success;
     }
 }

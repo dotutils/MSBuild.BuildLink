@@ -18,6 +18,9 @@ namespace Runner
     {
         static void Main(string[] args)
         {
+            LibStats();
+            return;
+
 
             ExperimentWithStats();
 
@@ -76,6 +79,37 @@ namespace Runner
 
             Console.WriteLine("All done");
             Console.ReadKey();
+        }
+
+        private static void LibStats(string path = @"C:\nugets\extracted")
+        {
+            //extensions
+            Console.WriteLine(string.Join(',',
+                Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Select(Path.GetExtension).GroupBy(e => e).Select(g => g.Key)
+            ));
+
+            // nugets with distinct libs
+            //Console.WriteLine(
+            //    string.Join(
+            //        Environment.NewLine,
+            //        Directory.EnumerateFiles(path, "*.dll", SearchOption.AllDirectories)
+            //            .Select(p => (fullPath: p, nugetName: p.Split('\\', 5)[3]))
+            //            .GroupBy(i => i.nugetName)
+            //            .Where(g => g.GroupBy(i => Path.GetFileName(i.fullPath)).Count() > 1)
+            //            .Select(i => i.Key)
+            //    ));
+
+            Console.WriteLine(
+                string.Join(
+                    Environment.NewLine,
+                    Directory.EnumerateFiles(path, "*.dll", SearchOption.AllDirectories)
+                        .Select(p => (fullPath: p, nugetName: p.Split('\\', 5)[3]))
+                        .GroupBy(i => i.nugetName)
+                        .Where(g => g.GroupBy(i => Path.GetFileName(i.fullPath)).Count() > 1)
+                        .SelectMany(g => g.Select(i => (nugetName: i.nugetName, lib: i.fullPath.Split('\\', 6)[5])))
+                        .OrderBy(i => i.nugetName + i.lib)
+                        .Select(i => i.nugetName + " " + i.lib)
+                ));
         }
 
         private static void ExperimentWithStats()

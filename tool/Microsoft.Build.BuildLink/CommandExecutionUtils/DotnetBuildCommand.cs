@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
+//using Xunit.Abstractions;
 
 namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
@@ -17,8 +17,8 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
         {
         }
 
-        internal DotnetBuildCommand(ITestOutputHelper log, params string[] args) : base(log, "build", args)
-        {
-        }
+        //internal DotnetBuildCommand(ITestOutputHelper log, params string[] args) : base(log, "build", args)
+        //{
+        //}
     }
 }

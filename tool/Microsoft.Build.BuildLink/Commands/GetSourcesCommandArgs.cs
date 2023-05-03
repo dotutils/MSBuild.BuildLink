@@ -18,4 +18,6 @@ public sealed class GetSourcesCommandArgs
     public string PackageName { get; init; }
     public string? PackageVersion { get; init; }
     public string? SupplementalBuildMetadataFilePath { get; init; }
+
+    //TODO: alllow prerelease; package source
 }
