@@ -34,7 +34,7 @@ namespace Microsoft.Build.BuildLink.Reporting
         InternalError = 70,
 
         /// <summary>
-        /// Configured working directory already exists and is not empty - so instantiation cannot proceed without destructive changes.
+        /// Configured working directory already exists and is not empty - so command cannot proceed without destructive changes.
         /// </summary>
         FileSystemWriteFailed = 73,
 

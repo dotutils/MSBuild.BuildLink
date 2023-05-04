@@ -2,6 +2,7 @@
 using System.CommandLine.Parsing;
 using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
+using Microsoft.Build.BuildLink.SourceCodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -34,9 +35,14 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         Description = "Allow prerelease version to be used",
     };
 
-    private readonly Option<string> _packageSourceOption = new(new[] { "-s", "--source" })
+    private readonly Option<string> _packageSourceOption = new(new[] { "--feed" })
     {
         Description = "Package source feed to be used to pull the nuget",
+    };
+
+    private readonly Option<string> _sourceCodeRootOption = new(new[] { "-d", "--destination" })
+    {
+        Description = "Local destination folder for fetching sources. If exists, proper repository and version of codes will be validated/checked-out.",
     };
 
     public GetSourcesCommand()
@@ -44,6 +50,10 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
     {
         AddArgument(_packageNameArgument);
         AddOption(_packageVersionOption);
+        AddOption(_buildFilePathOption);
+        AddOption(_allowPrereleaseOption);
+        AddOption(_packageSourceOption);
+        AddOption(_sourceCodeRootOption);
     }
 
     protected internal override GetSourcesCommandArgs ParseContext(ParseResult parseResult)
@@ -53,7 +63,8 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
             parseResult.GetValueForOption(_packageVersionOption),
             parseResult.GetValueForOption(_buildFilePathOption),
             parseResult.GetValueForOption(_allowPrereleaseOption),
-            parseResult.GetValueForOption(_packageSourceOption)
+            parseResult.GetValueForOption(_packageSourceOption),
+            parseResult.GetValueForOption(_sourceCodeRootOption)
         );
     }
 }
@@ -62,11 +73,16 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
 {
     private readonly ILogger<GetSourcesCommandHandler> _logger;
     private readonly INugetInfoProvider _nugetInfoProvider;
+    private readonly ISourceFetcher _sourceFetcher;
 
-    public GetSourcesCommandHandler(ILogger<GetSourcesCommandHandler> logger, INugetInfoProvider nugetInfoProvider)
+    public GetSourcesCommandHandler(
+        ILogger<GetSourcesCommandHandler> logger,
+        INugetInfoProvider nugetInfoProvider,
+        ISourceFetcher sourceFetcher)
     {
         _logger = logger;
         _nugetInfoProvider = nugetInfoProvider;
+        _sourceFetcher = sourceFetcher;
     }
 
     public async Task<BuildLinkErrorCode> ExecuteAsync(GetSourcesCommandArgs args, CancellationToken cancellationToken)
@@ -80,6 +96,19 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
         };
 
         NugetInfo info = await _nugetInfoProvider.FetchNugetInfoAsync(request, cancellationToken).ConfigureAwait(false);
+
+        if (info.Repository == null)
+        {
+            //TODO: fetch from symbols here
+            throw new BuildLinkException($"Source code repository metadata not populated for {args.PackageName}",
+                BuildLinkErrorCode.NotEnoughInformationToProceed);
+        }
+
+        string destinationDir = args.SourcesCodesDownloadRoot ?? $"{args.PackageName}.{info.Version}";
+
+        _sourceFetcher.FetchRepository(info.Repository, destinationDir);
+
+        // get the project file
 
         return BuildLinkErrorCode.Success;
     }

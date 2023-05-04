@@ -46,11 +46,11 @@ namespace NugetUtils
 
             string GetCommitHashOrBranch(string revisionRef, LibGit2Sharp.Repository repo)
             {
-                return string.IsNullOrEmpty(locationInfo.RevisionRef)
+                return string.IsNullOrEmpty(revisionRef)
                     ? (repo.Head.FriendlyName.Equals("(no branch)", StringComparison.InvariantCultureIgnoreCase)
                         ? repo.Head.Reference.TargetIdentifier
                         : repo.Head.FriendlyName)
-                    : locationInfo.RevisionRef;
+                    : revisionRef;
             }
 
             // https://github.com/dotnet/Nerdbank.GitVersioning/issues/396 workaround

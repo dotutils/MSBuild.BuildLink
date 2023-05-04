@@ -6,5 +6,11 @@ internal interface IFileSystem
 
     bool FileExists(string path);
 
+    bool PathExists(string path);
+
     void RenameFile(string original, string @new);
+
+    void DeleteDirectory(string path);
+
+    IEnumerable<string> EnumerateDirectories(string dir);
 }

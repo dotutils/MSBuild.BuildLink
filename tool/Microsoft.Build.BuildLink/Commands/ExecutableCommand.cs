@@ -48,7 +48,7 @@ internal abstract class ExecutableCommand<TArgs, THandler> : Command, ICommandHa
         }
         catch (Exception e)
         {
-            ILogger? logger = host.Services.GetService<ILogger>();
+            ILogger? logger = host.Services.GetService<ILogger<ExecutableCommand<TArgs, THandler>>>();
 
             logger?.LogError("Executed command failed");
             logger?.LogError(e.Message);

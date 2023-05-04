@@ -21,6 +21,8 @@
 
     <PackageReference Include="NuGet.Protocol" Version="6.5.0" />
     <!--<PackageReference Include="NuGetPackageExplorer.Types" Version="4.5.26" />-->
+
+    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
   </ItemGroup>
 
   <ItemGroup>

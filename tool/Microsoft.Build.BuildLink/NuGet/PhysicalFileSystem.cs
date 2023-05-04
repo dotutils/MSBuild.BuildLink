@@ -13,7 +13,10 @@ namespace Microsoft.Build.BuildLink.NuGet
     {
         public void CreateDirectory(string path) => Directory.CreateDirectory(path);
         public bool FileExists(string path) => File.Exists(path);
+        public bool PathExists(string path) => Path.Exists(path);
 
         public void RenameFile(string original, string @new) => File.Move(original, @new);
+        public void DeleteDirectory(string path) => Directory.Delete(path);
+        public IEnumerable<string> EnumerateDirectories(string dir) => Directory.EnumerateDirectories(dir);
     }
 }
