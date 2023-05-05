@@ -3,23 +3,25 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
     internal class Command
     {
+        private readonly ILogger _logger;
         private readonly Process _process;
-
         private readonly bool _trimTrailingNewlines;
 
         private StreamForwarder? _stdOut;
         private StreamForwarder? _stdErr;
         private bool _running;
 
-        public Command(Process process, bool trimtrailingNewlines = false)
+        public Command(Process process, ILogger logger, bool trimtrailingNewlines = false)
         {
             _trimTrailingNewlines = trimtrailingNewlines;
             _process = process ?? throw new ArgumentNullException(nameof(process));
+            _logger = logger;
         }
 
         public string CommandName => _process.StartInfo.FileName;
@@ -33,25 +35,23 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 
         public CommandResult Execute(Action<Process>? processStarted, int maxMillisecondsWait = Timeout.Infinite)
         {
-            Console.WriteLine($"Running {_process.StartInfo.FileName} {_process.StartInfo.Arguments}");
+            _logger.LogInformation("Running {fileName} {args}", _process.StartInfo.FileName, _process.StartInfo.Arguments);
             ThrowIfRunning();
 
             _running = true;
 
             _process.EnableRaisingEvents = true;
 
-#if DEBUG
             var sw = Stopwatch.StartNew();
+            _logger.LogDebug($"> {FormatProcessInfo(_process.StartInfo)}");
 
-            Console.WriteLine($"> {FormatProcessInfo(_process.StartInfo)}");
-#endif
             using (var reaper = new ProcessReaper(_process))
             {
                 _process.Start();
                 processStarted?.Invoke(_process);
                 reaper.NotifyProcessStarted();
 
-                Console.WriteLine($"Process ID: {_process.Id}");
+                _logger.LogDebug("Process ID: {processId}", _process.Id);
 
                 var taskOut = _stdOut?.BeginRead(_process.StandardOutput);
                 var taskErr = _stdErr?.BeginRead(_process.StandardError);
@@ -65,18 +65,7 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
             }
 
             var exitCode = _process.ExitCode;
-
-#if DEBUG
-            var message = string.Format($"&lt; {FormatProcessInfo(_process.StartInfo)} exited with {exitCode} in {sw.ElapsedMilliseconds} ms");
-            if (exitCode == 0)
-            {
-                Console.WriteLine(message);
-            }
-            else
-            {
-                Console.WriteLine(message);
-            }
-#endif
+            _logger.Log(exitCode == 0 ? LogLevel.Debug : LogLevel.Information, "> {process} exited with {exitCode} in {milliseconds} ms", FormatProcessInfo(_process.StartInfo), exitCode, sw.ElapsedMilliseconds);
 
             return new CommandResult(
                 _process.StartInfo,

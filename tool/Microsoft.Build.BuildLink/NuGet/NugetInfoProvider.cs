@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.Build.BuildLink.IO;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Extensions.Logging;
 using NuGet.Configuration;

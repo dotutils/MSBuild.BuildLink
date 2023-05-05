@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Microsoft.Build.BuildLink.CommandExecutionUtils;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
@@ -18,13 +19,13 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 
         public string? WorkingDirectory { get; set; }
 
-        public Command ToCommand()
+        public Command ToCommand(ILogger logger)
         {
             var process = new Process()
             {
                 StartInfo = ToProcessStartInfo()
             };
-            var ret = new Command(process, trimtrailingNewlines: true);
+            var ret = new Command(process, logger, trimtrailingNewlines: true);
             return ret;
         }
 

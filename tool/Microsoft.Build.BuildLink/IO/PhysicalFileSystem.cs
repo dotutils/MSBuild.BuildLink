@@ -7,9 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Build.BuildLink.NuGet
+namespace Microsoft.Build.BuildLink.IO
 {
-    internal class PhysicalFileSystem: IFileSystem
+    internal class PhysicalFileSystem : IFileSystem
     {
         public void CreateDirectory(string path) => Directory.CreateDirectory(path);
         public bool FileExists(string path) => File.Exists(path);

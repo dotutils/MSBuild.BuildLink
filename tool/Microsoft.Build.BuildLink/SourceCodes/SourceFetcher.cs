@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using LibGit2Sharp;
+using Microsoft.Build.BuildLink.IO;
 using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Extensions.Logging;
@@ -66,12 +67,11 @@ namespace Microsoft.Build.BuildLink.SourceCodes
                         commitHashOrBranch, repo.Head.FriendlyName, repo.Head.Tip.Sha);
                 }
 
-                //repo.RetrieveStatus().IsDirty
-                int changesCount = repo.Diff.Compare<TreeChanges>().Count;
-                if (changesCount > 0)
+                var status = repo.RetrieveStatus();
+                if (status.IsDirty)
                 {
                     throw new BuildLinkException(
-                        $"Local source codes have {changesCount} uncommitted changes, cannot proceed checking out",
+                        $"Local source codes have uncommitted changes ({status.Modified.Count()} modifications, {status.Untracked.Count()} untracked, {status.Added.Count()} added, {status.Removed.Count()} removed), cannot proceed checking out",
                         BuildLinkErrorCode.FileSystemWriteFailed);
                 }
                 LibGit2Sharp.Commands.Checkout(repo, commitHashOrBranch);

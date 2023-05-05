@@ -25,7 +25,12 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         Description = "Version of the package",
     };
 
-    private readonly Option<string> _buildFilePathOption = new(new[] { "--build-descriptor" })
+    private readonly Option<string> _libFileOption = new(new[] { "-l", "--lib" })
+    {
+        Description = "Lib file name (or prefix), for which we want to return the MSBuild project file. Multiple matches allowed. Any directory separator is normalized. If not supplied - all lib files are inspected.",
+    };
+
+    private readonly Option<string> _buildFilePathOption = new(new[] { "-b", "--build-metadata-file" })
     {
         Description = "Path to the build descriptor file. Relative path resolved relative to repository root. Absolute path allows to use local file not located in repository",
     };
@@ -54,6 +59,7 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         AddOption(_allowPrereleaseOption);
         AddOption(_packageSourceOption);
         AddOption(_sourceCodeRootOption);
+        AddOption(_libFileOption);
     }
 
     protected internal override GetSourcesCommandArgs ParseContext(ParseResult parseResult)
@@ -64,7 +70,8 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
             parseResult.GetValueForOption(_buildFilePathOption),
             parseResult.GetValueForOption(_allowPrereleaseOption),
             parseResult.GetValueForOption(_packageSourceOption),
-            parseResult.GetValueForOption(_sourceCodeRootOption)
+            parseResult.GetValueForOption(_sourceCodeRootOption),
+            parseResult.GetValueForOption(_libFileOption)
         );
     }
 }
@@ -109,7 +116,10 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
         _sourceFetcher.FetchRepository(info.Repository, destinationDir);
 
         // get the project file
+          // if the build metadata is found - use it
+          // if something looking like pre-build is found (script, global.json, submodules, etc.) - suggest adding of build metadata
+        // get project for each lib
 
-        return BuildLinkErrorCode.Success;
+          return BuildLinkErrorCode.Success;
     }
 }

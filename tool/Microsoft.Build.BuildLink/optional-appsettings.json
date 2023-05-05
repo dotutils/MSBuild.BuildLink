@@ -1,0 +1,14 @@
+﻿{
+    "Logging": {
+        "LogLevel": {
+            "Default": "Information"
+        },
+        "File": {
+            "Path": "build-link.log",
+            "Append": "True",
+            "MinLevel": "Warning", // min level for the file logger
+            "FileSizeLimitBytes": 10000,
+            "MaxRollingFiles": 3 // use to specify max number of log files
+        }
+    }
+}

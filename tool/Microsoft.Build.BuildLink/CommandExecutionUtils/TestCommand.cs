@@ -81,7 +81,7 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
         internal virtual CommandResult Execute(IEnumerable<string> args)
         {
             Command command = CreateCommandSpec(args)
-                .ToCommand()
+                .ToCommand(_loggerWrapper.Logger)
                 .CaptureStdOut()
                 .CaptureStdErr();
 
@@ -142,6 +142,7 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
         {
             private readonly ILogger _logger;
             //private readonly ITestOutputHelper? _testHelper;
+            public ILogger Logger => _logger;
 
             internal LoggerWrapper(ILogger logger)
             {

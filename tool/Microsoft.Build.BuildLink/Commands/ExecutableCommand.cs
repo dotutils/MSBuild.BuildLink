@@ -56,10 +56,9 @@ internal abstract class ExecutableCommand<TArgs, THandler> : Command, ICommandHa
             returnCode = ex?.BuildLinkErrorCode ?? BuildLinkErrorCode.InternalError;
         }
 
-        if (returnCode != BuildLinkErrorCode.Success)
+        if (returnCode != BuildLinkErrorCode.Success && parseResult.GetConsoleVerbosityOption().ToLogLevel() < LogLevel.None)
         {
             IStderrWriter? writer = host.Services.GetService<IStderrWriter>();
-            ;
 
             writer?.WriteLine();
             writer?.WriteLine(

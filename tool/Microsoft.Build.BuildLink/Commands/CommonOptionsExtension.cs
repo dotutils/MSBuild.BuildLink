@@ -15,20 +15,37 @@ namespace Microsoft.Build.BuildLink
 {
     internal static class CommonOptionsExtension
     {
-        private const VerbosityOptions DefaultVerbosity = VerbosityOptions.normal;
+        private const VerbosityOptions DefaultConsoleVerbosity = VerbosityOptions.normal;
+        private const VerbosityOptions DefaultFileVerbosity = VerbosityOptions.quiet;
 
-        internal static readonly Option<VerbosityOptions> s_verbosityOption = new(
+        internal static readonly Option<VerbosityOptions> s_consoleVerbosityOption = new(
             new string[] { "-v", "--verbosity" },
-            () => DefaultVerbosity,
+            () => DefaultConsoleVerbosity,
             "Sets the verbosity level. Allowed values are q[uiet], m[inimal], n[ormal], and diag[nostic]. [default: normal]")
         {
             ArgumentHelpName = "LEVEL"
         };
 
-        public static VerbosityOptions GetVerbosityOption(this ParseResult parseResult)
+        internal static readonly Option<VerbosityOptions> s_fileVerbosityOption = new(
+            new string[] { "-fv", "--file-verbosity" },
+            () => DefaultFileVerbosity,
+            "Sets the verbosity level for logging into file log. Allowed values are q[uiet], m[inimal], n[ormal], and diag[nostic]. [default: quiet]")
         {
-            OptionResult? verbosityOptionResult = parseResult.FindResultFor(CommonOptionsExtension.s_verbosityOption);
-            VerbosityOptions verbosity = DefaultVerbosity;
+            ArgumentHelpName = "FILE_LEVEL",
+            // Consider hiding this
+            // IsHidden = true
+        };
+
+        public static VerbosityOptions GetConsoleVerbosityOption(this ParseResult parseResult)
+            => parseResult.GetVerbosityOption(s_consoleVerbosityOption, DefaultConsoleVerbosity);
+
+        public static VerbosityOptions GetFileVerbosityOption(this ParseResult parseResult)
+            => parseResult.GetVerbosityOption(s_fileVerbosityOption, DefaultFileVerbosity);
+
+        private static VerbosityOptions GetVerbosityOption(this ParseResult parseResult, Option<VerbosityOptions> option, VerbosityOptions @default)
+        {
+            OptionResult? verbosityOptionResult = parseResult.FindResultFor(option);
+            VerbosityOptions verbosity = @default;
 
             if (verbosityOptionResult != null && !verbosityOptionResult.IsImplicit)
             {

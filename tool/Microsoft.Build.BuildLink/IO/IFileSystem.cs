@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Build.BuildLink.NuGet;
+﻿namespace Microsoft.Build.BuildLink.IO;
 
 internal interface IFileSystem
 {
