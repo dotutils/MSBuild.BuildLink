@@ -4,10 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static Microsoft.Build.BuildLink.Program;
 
@@ -16,7 +19,7 @@ namespace Microsoft.Build.BuildLink
     internal static class CommonOptionsExtension
     {
         private const VerbosityOptions DefaultConsoleVerbosity = VerbosityOptions.normal;
-        private const VerbosityOptions DefaultFileVerbosity = VerbosityOptions.quiet;
+        public const VerbosityOptions DefaultFileVerbosity = VerbosityOptions.quiet;
 
         internal static readonly Option<VerbosityOptions> s_consoleVerbosityOption = new(
             new string[] { "-v", "--verbosity" },
@@ -36,16 +39,19 @@ namespace Microsoft.Build.BuildLink
             // IsHidden = true
         };
 
-        public static VerbosityOptions GetConsoleVerbosityOption(this ParseResult parseResult)
-            => parseResult.GetVerbosityOption(s_consoleVerbosityOption, DefaultConsoleVerbosity);
+        public static VerbosityOptions GetConsoleVerbosityOptionOrDefault(this ParseResult parseResult)
+            => parseResult.GetVerbosityOption(s_consoleVerbosityOption) ?? DefaultConsoleVerbosity;
 
-        public static VerbosityOptions GetFileVerbosityOption(this ParseResult parseResult)
-            => parseResult.GetVerbosityOption(s_fileVerbosityOption, DefaultFileVerbosity);
+        public static VerbosityOptions? GetFileVerbosityOption(this ParseResult parseResult)
+            => parseResult.GetVerbosityOption(s_fileVerbosityOption);
 
-        private static VerbosityOptions GetVerbosityOption(this ParseResult parseResult, Option<VerbosityOptions> option, VerbosityOptions @default)
+        public static VerbosityOptions GetFileVerbosityOptionOrDefault(this ParseResult parseResult)
+            => parseResult.GetVerbosityOption(s_fileVerbosityOption) ?? DefaultFileVerbosity;
+
+        private static VerbosityOptions? GetVerbosityOption(this ParseResult parseResult, Option<VerbosityOptions> option)
         {
             OptionResult? verbosityOptionResult = parseResult.FindResultFor(option);
-            VerbosityOptions verbosity = @default;
+            VerbosityOptions? verbosity = null;
 
             if (verbosityOptionResult != null && !verbosityOptionResult.IsImplicit)
             {
@@ -53,6 +59,74 @@ namespace Microsoft.Build.BuildLink
             }
 
             return verbosity;
+        }
+
+        internal static ILoggingBuilder ConfigureBuildLinkLogging(this ILoggingBuilder logging, IHostBuilder host)
+        {
+            logging.ClearProviders();
+
+            ParseResult parseResult = (host.Properties[typeof(InvocationContext)] as InvocationContext).ParseResult;
+
+            var consoleLogLevel = parseResult.GetConsoleVerbosityOptionOrDefault().ToLogLevel();
+            var fileLogLevelOrNull = parseResult.GetFileVerbosityOption().ToLogLevel();
+            var fileLogLevel = fileLogLevelOrNull ??
+                               CommonOptionsExtension.DefaultFileVerbosity.ToLogLevel();
+
+
+            if (consoleLogLevel < LogLevel.None)
+            {
+                logging.AddConsole();
+            }
+
+            if (!fileLogLevelOrNull.HasValue || fileLogLevelOrNull < LogLevel.None)
+            {
+                //TODO: Arch: do we want to try to fetch app.json everytime when file logging is not explicitly disabled?
+                //  the file logging is disabled by default, but what if someone wants to add app.json?
+                //  maybe - allow the option without value?
+                var loggingSection = FetchConfiguration()?.GetSection("Logging");
+                if (loggingSection != null)
+                {
+                    if (fileLogLevelOrNull.HasValue)
+                    {
+                        loggingSection.GetSection("File")["MinLevel"] = fileLogLevelOrNull.ToString();
+                    }
+
+                    logging.AddFile(loggingSection);
+                }
+                else
+                {
+                    logging.AddFile("build-link.log", cfg =>
+                    {
+                        cfg.Append = true;
+                        cfg.MinLevel = fileLogLevel;
+                        cfg.FileSizeLimitBytes = 10000;
+                        cfg.MaxRollingFiles = 3;
+                    });
+                }
+            }
+
+            var minLevel = (LogLevel)Math.Min((int)consoleLogLevel, (int)fileLogLevel);
+            logging.SetMinimumLevel(minLevel);
+
+            return logging;
+        }
+
+        private static IConfigurationRoot? FetchConfiguration()
+        {
+            var currentDir = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(currentDir, "appsettings.json")))
+            {
+                currentDir = Directory.GetParent(currentDir)?.FullName;
+                if (string.IsNullOrWhiteSpace(currentDir))
+                {
+                    return null;
+                }
+            }
+
+            return new ConfigurationBuilder()
+                .SetBasePath(currentDir)
+                .AddJsonFile("appsettings.json", false)
+                .Build();
         }
 
         public static bool IsDetailedOrDiagnostic(this VerbosityOptions verbosity)
@@ -110,5 +184,8 @@ namespace Microsoft.Build.BuildLink
             }
             return logLevel;
         }
+
+        public static LogLevel? ToLogLevel(this VerbosityOptions? verbosityOptions) =>
+            verbosityOptions?.ToLogLevel();
     }
 }
