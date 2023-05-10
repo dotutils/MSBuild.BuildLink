@@ -13,4 +13,8 @@ internal interface IFileSystem
     void DeleteDirectory(string path);
 
     IEnumerable<string> EnumerateDirectories(string dir);
+    IEnumerable<string> EnumerateDirectories(string path, string searchPattern, EnumerationOptions enumerationOptions);
+
+    void FileCopy(string sourceFileName, string destFileName, bool overwrite);
+    IEnumerable<string> EnumerateFiles(string path, string searchPattern, EnumerationOptions enumerationOptions);
 }

@@ -6,27 +6,31 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Build.BuildLink.IO;
 using Microsoft.Extensions.Logging;
 
 namespace BuildUtils
 {
-    //todo: abstract out
-    public class FileSystemHelper
+    // TODO: might be more effective with Microsoft.IO.Redist and EnumerationOptions.IgnoreInaccessible
+    // https://learn.microsoft.com/en-us/dotnet/api/system.io.enumerationoptions.ignoreinaccessible?view=net-7.0#system-io-enumerationoptions-ignoreinaccessible
+
+    internal class FileSystemHelper : IFileSystemHelper
     {
         private readonly ILogger _logger;
+        private readonly IFileSystem _fileSystem;
 
-        public FileSystemHelper(ILogger logger) => _logger = logger;
+        public FileSystemHelper(ILogger logger, IFileSystem fileSystem) => (_logger, _fileSystem) = (logger, fileSystem);
 
         public void CopyFilesRecursively(string sourcePath, string targetPath, bool skipTopDotDirs = false)
         {
             foreach (string dirPath in EnumerateDirectories(sourcePath, SearchOption.AllDirectories, skipTopDotDirs))
             {
-                Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
+                _fileSystem.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
             }
 
             foreach (string newPath in EnumerateFiles(sourcePath))
             {
-                File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
+                _fileSystem.FileCopy(newPath, newPath.Replace(sourcePath, targetPath), true);
             }
         }
 
@@ -76,7 +80,7 @@ namespace BuildUtils
         {
             IEnumerable<string> files;
             // Need to realize enumeration with ToList - in case of errors
-            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateFiles(inputDir, pattern, new EnumerationOptions()
+            if (!TryRunIoOperation(inputDir, () => _fileSystem.EnumerateFiles(inputDir, pattern, new EnumerationOptions()
                 {
                     AttributesToSkip = default,
                     RecurseSubdirectories = searchOption == SearchOption.AllDirectories
@@ -94,7 +98,7 @@ namespace BuildUtils
         {
             List<string> dirs;
             // Need to realize enumeration with ToList - in case of errors
-            if (!TryRunIoOperation(inputDir, () => Directory.EnumerateDirectories(inputDir, "*",
+            if (!TryRunIoOperation(inputDir, () => _fileSystem.EnumerateDirectories(inputDir, "*",
                         new EnumerationOptions()
                         {
                             AttributesToSkip = default,

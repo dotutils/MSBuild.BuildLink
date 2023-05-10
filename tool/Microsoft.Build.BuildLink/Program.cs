@@ -12,6 +12,7 @@ using Microsoft.Build.BuildLink.Commands;
 using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Build.BuildLink.SourceCodes;
+using BuildUtils;
 
 namespace Microsoft.Build.BuildLink
 {
@@ -34,7 +35,8 @@ namespace Microsoft.Build.BuildLink
                         services.AddSingleton<IEnvironment, DefaultEnvironment>();
                         services.AddSingleton<IO.IFileSystem, IO.PhysicalFileSystem>();
                         services.AddSingleton<ISourceFetcher, SourceFetcher>();
-
+                        services.AddSingleton<IFileSystemHelper, FileSystemHelper>();
+                        services.AddSingleton<IBuildDescriptionFinder, BuildDescriptionFinder>();
                     })
                     .ConfigureLogging(logging =>
                     {

@@ -18,5 +18,11 @@ namespace Microsoft.Build.BuildLink.IO
         public void RenameFile(string original, string @new) => File.Move(original, @new);
         public void DeleteDirectory(string path) => Directory.Delete(path);
         public IEnumerable<string> EnumerateDirectories(string dir) => Directory.EnumerateDirectories(dir);
+        public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, EnumerationOptions enumerationOptions)
+            => Directory.EnumerateDirectories(path, searchPattern, enumerationOptions);
+
+        public void FileCopy(string sourceFileName, string destFileName, bool overwrite) => File.Copy(sourceFileName, destFileName, overwrite);
+        public IEnumerable<string> EnumerateFiles(string path, string searchPattern, EnumerationOptions enumerationOptions)
+            => Directory.EnumerateFiles(path, searchPattern, enumerationOptions);
     }
 }
