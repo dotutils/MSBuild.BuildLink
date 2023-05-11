@@ -23,10 +23,9 @@ namespace Microsoft.Build.BuildLink.Reporting
         Success = 0,
 
         /// <summary>
-        /// Indicates failed verification - assertions defined for the scenarios were not met.
-        /// E.g. unexpected exit code, stdout/stderr output or created templates content.
+        /// Invalid, corrupted, unexpected data - in files, packaes etc.
         /// </summary>
-        VerificationFailed = 65,
+        InvalidData = 65,
 
         /// <summary>
         /// Unexpected internal error in BuildLink. This might indicate a bug.

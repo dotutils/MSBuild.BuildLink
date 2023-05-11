@@ -13,11 +13,16 @@ using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Build.BuildLink.SourceCodes;
 using BuildUtils;
+using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink
 {
     internal sealed class Program
     {
+        // TODO: detect submodules in source fetcher (plus not implemented exception for recurse submodules option)
+        // TODO: detect global.json - and add as part of build descriptor
+        
         static Task<int> Main(string[] args)
         {
             return BuildCommandLine()
@@ -30,19 +35,25 @@ namespace Microsoft.Build.BuildLink
                         services.AddSingleton<GetSourcesCommandHandler>();
                         services.AddSingleton<AddBuildMetadataCommandHandler>();
                         services.AddSingleton<IStderrWriter, DefaultStderrWriter>();
+                        services.AddSingleton<IStdoutWriter, DefaultStdoutWriter>();
                         services.AddSingleton<INugetInfoProvider, NugetInfoProvider>();
                         services.AddSingleton<IPackageSourcesProvider, DotnetCommandPackageSourcesProvider>();
                         services.AddSingleton<IEnvironment, DefaultEnvironment>();
                         services.AddSingleton<IO.IFileSystem, IO.PhysicalFileSystem>();
                         services.AddSingleton<ISourceFetcher, SourceFetcher>();
                         services.AddSingleton<IFileSystemHelper, FileSystemHelper>();
+                        services.AddSingleton<IBuildDescriptorSerializer, BuildDescriptorSerializer>();
                         services.AddSingleton<IBuildDescriptionFinder, BuildDescriptionFinder>();
                     })
+                    .AddCancellationTokenProvider()
                     .ConfigureLogging(logging =>
                     {
                         logging.ConfigureBuildLinkLogging(host);
                     });
                 })
+                .UseExceptionHandler(ExceptionHandler)
+                .UseParseErrorReporting((int) BuildLinkErrorCode.InvalidOption)
+                .CancelOnProcessTermination()
                 .UseHelp()
                 .UseDefaults()
                 .EnablePosixBundling(true)
@@ -60,6 +71,18 @@ namespace Microsoft.Build.BuildLink
             root.AddGlobalOption(CommonOptionsExtension.s_fileVerbosityOption);
 
             return new CommandLineBuilder(root);
+        }
+
+        private static void ExceptionHandler(Exception exception, InvocationContext context)
+        {
+            if (exception is TargetInvocationException)
+            {
+                exception = exception.InnerException ?? exception;
+            }
+
+            ILogger? logger = context.BindingContext.GetService<ILogger<Program>>();
+            logger.LogCritical( exception,"Unhandled exception occurred ({type})", exception.GetType());
+            context.ExitCode = (int)BuildLinkErrorCode.InternalError;
         }
     }
 }

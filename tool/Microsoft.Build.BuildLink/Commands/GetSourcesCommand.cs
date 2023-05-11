@@ -3,9 +3,12 @@ using System.CommandLine.Parsing;
 using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Build.BuildLink.SourceCodes;
+using Microsoft.Build.BuildLink.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
+using NuGet.Common;
 
 namespace Microsoft.Build.BuildLink.Commands;
 
@@ -27,7 +30,7 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
 
     private readonly Option<string> _libFileOption = new(new[] { "-l", "--lib" })
     {
-        Description = "Lib file name (or prefix), for which we want to return the MSBuild project file. Multiple matches allowed. Any directory separator is normalized. If not supplied - all lib files are inspected.",
+        Description = "Lib file name (without extension), for which we want to return the MSBuild project file. If not supplied - all lib files are inspected.",
     };
 
     private readonly Option<string> _buildFilePathOption = new(new[] { "-b", "--build-metadata-file" })
@@ -38,6 +41,11 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
     private readonly Option<bool> _allowPrereleaseOption = new(new[] { "--include-prerelease" })
     {
         Description = "Allow prerelease version to be used",
+    };
+
+    private readonly Option<bool> _ignoreBuildLinkJsonOption = new(new[] { "--ignore-buildlink-json" })
+    {
+        Description = "Ignore any available buildlink.json file and perform repo search instead.",
     };
 
     private readonly Option<string> _packageSourceOption = new(new[] { "--feed" })
@@ -55,11 +63,12 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
     {
         AddArgument(_packageNameArgument);
         AddOption(_packageVersionOption);
-        AddOption(_buildFilePathOption);
-        AddOption(_allowPrereleaseOption);
         AddOption(_packageSourceOption);
+        AddOption(_allowPrereleaseOption);
         AddOption(_sourceCodeRootOption);
         AddOption(_libFileOption);
+        AddOption(_buildFilePathOption);
+        AddOption(_ignoreBuildLinkJsonOption);
     }
 
     protected internal override GetSourcesCommandArgs ParseContext(ParseResult parseResult)
@@ -68,6 +77,7 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
             parseResult.GetValueForArgument(_packageNameArgument),
             parseResult.GetValueForOption(_packageVersionOption),
             parseResult.GetValueForOption(_buildFilePathOption),
+            parseResult.GetValueForOption(_ignoreBuildLinkJsonOption),
             parseResult.GetValueForOption(_allowPrereleaseOption),
             parseResult.GetValueForOption(_packageSourceOption),
             parseResult.GetValueForOption(_sourceCodeRootOption),
@@ -81,15 +91,24 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
     private readonly ILogger<GetSourcesCommandHandler> _logger;
     private readonly INugetInfoProvider _nugetInfoProvider;
     private readonly ISourceFetcher _sourceFetcher;
+    private readonly IBuildDescriptionFinder _buildDescriptionFinder;
+    private readonly IBuildDescriptorSerializer _buildDescriptorSerializer;
+    private readonly IStdoutWriter _stdoutWriter;
 
     public GetSourcesCommandHandler(
         ILogger<GetSourcesCommandHandler> logger,
         INugetInfoProvider nugetInfoProvider,
-        ISourceFetcher sourceFetcher)
+        ISourceFetcher sourceFetcher,
+        IBuildDescriptionFinder buildDescriptionFinder,
+        IBuildDescriptorSerializer buildDescriptorSerializer,
+        IStdoutWriter stdoutWriter)
     {
         _logger = logger;
         _nugetInfoProvider = nugetInfoProvider;
         _sourceFetcher = sourceFetcher;
+        _buildDescriptionFinder = buildDescriptionFinder;
+        _buildDescriptorSerializer = buildDescriptorSerializer;
+        _stdoutWriter = stdoutWriter;
     }
 
     public async Task<BuildLinkErrorCode> ExecuteAsync(GetSourcesCommandArgs args, CancellationToken cancellationToken)
@@ -111,15 +130,60 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
                 BuildLinkErrorCode.NotEnoughInformationToProceed);
         }
 
-        string destinationDir = args.SourcesCodesDownloadRoot ?? $"{args.PackageName}.{info.Version}";
+        string[] assembliesExtensions = new[] { ".exe", ".dll" };
+        List<string> assemblyNames = info.LibFiles
+            .Where(f => assembliesExtensions.Contains(Path.GetExtension(f), StringComparer.CurrentCultureIgnoreCase))
+            .Select(Path.GetFileNameWithoutExtension)
+            .GroupBy(n => n)
+            .Select(g => g.Key!)
+            .ToList();
 
-        _sourceFetcher.FetchRepository(info.Repository, destinationDir);
+        string? filterByLibFile = args.LibFile;
+        if (!string.IsNullOrEmpty(filterByLibFile))
+        {
+            filterByLibFile = filterByLibFile.Trim().RemoveAnyFromEnd(assembliesExtensions);
+            if (!assemblyNames.Contains(filterByLibFile, StringComparer.CurrentCultureIgnoreCase))
+            {
+                throw new BuildLinkException(
+                    $"Requested lib file [{args.LibFile}], is not present amongst discovered lib assemblies of the '{args.PackageName}' package. Discovered lib assemblies: {string.Join(',', assemblyNames)}",
+                    BuildLinkErrorCode.InvalidOption);
+            }
+            assemblyNames = new List<string>() { filterByLibFile };
+        }
 
-        // get the project file
-          // if the build metadata is found - use it
-          // if something looking like pre-build is found (script, global.json, submodules, etc.) - suggest adding of build metadata
-        // get project for each lib
+        string sourcesDestinationDir = args.SourcesCodesDownloadRoot ?? $"{args.PackageName}.{info.Version}";
 
-          return BuildLinkErrorCode.Success;
+        cancellationToken.ThrowIfCancellationRequested();
+        _sourceFetcher.FetchRepository(info.Repository, sourcesDestinationDir);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        WorkingCopyBuildDescriptor? buildDescriptor = null;
+        bool descriptorFileUsed = true;
+        if (!args.IgnoreBuildlinkJson)
+        {
+            buildDescriptor = await _buildDescriptionFinder.GetBuildDescriptorAsync(sourcesDestinationDir,
+                    args.SupplementalBuildMetadataFilePath, args.PackageName, filterByLibFile, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (buildDescriptor == null)
+        {
+            descriptorFileUsed = false;
+            buildDescriptor = _buildDescriptionFinder.DiscoverBuildFiles(sourcesDestinationDir, args.PackageName, assemblyNames, cancellationToken);
+        }
+
+        string descriptorString = _buildDescriptorSerializer.WriteToString(buildDescriptor);
+
+        if (!descriptorFileUsed && buildDescriptor.HasNonMsBuildInfo())
+        {
+            _logger.LogWarning("The buildlink.json file was not provided, nor found in the repository, however it seems there might be some source or/and build initialization steps needed, that can be captured within the buildlink.json. Run 'add-build-metadata' subcommand to create suggested file or use the output of this command or refer to https://aka.ms/build-link/buildlink.json for more details.");
+            _logger.LogDebug("Build Descriptor (buildlink.json) initially discovered content:");
+            _logger.LogDebug(descriptorString);
+        }
+
+        _stdoutWriter.WriteLine("----------------------------- Build description info -----------------------------");
+        _stdoutWriter.WriteLine(descriptorString);
+        _stdoutWriter.WriteLine("----------------------------------------------------------------------------------");
+
+        return BuildLinkErrorCode.Success;
     }
 }

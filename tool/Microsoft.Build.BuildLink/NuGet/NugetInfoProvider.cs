@@ -29,9 +29,11 @@ internal class NugetInfoProvider : INugetInfoProvider
 
     public async Task<NugetInfo> FetchNugetInfoAsync(NugetInfoRequest nugetInfoRequest, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
         List<string> sources = nugetInfoRequest.PackageSource != null
             ? new List<string>() { nugetInfoRequest.PackageSource }
             : _packageSourcesProvider.GetPackageSources().ToList();
+        token.ThrowIfCancellationRequested();
 
         NuGetVersion nuGetVersion = await GetVersion(nugetInfoRequest, token, sources).ConfigureAwait(false);
 
@@ -56,6 +58,7 @@ internal class NugetInfoProvider : INugetInfoProvider
             {
                 _logger.Log(e is OperationCanceledException ? LogLevel.Trace : LogLevel.Warning, e,
                     "Failed to fetch nuget info from source: {source}", source);
+                token.ThrowIfCancellationRequested();
             }
 
             return packageInfo;
@@ -137,6 +140,7 @@ internal class NugetInfoProvider : INugetInfoProvider
         {
             _logger.Log(e is OperationCanceledException ? LogLevel.Trace : LogLevel.Warning, e,
                 "Failed to fetch nuget versions from source: {source}", packageSource);
+            token.ThrowIfCancellationRequested();
             return null;
         }
     }

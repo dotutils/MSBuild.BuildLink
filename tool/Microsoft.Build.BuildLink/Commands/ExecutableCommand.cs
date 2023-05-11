@@ -2,6 +2,7 @@
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -39,12 +40,22 @@ internal abstract class ExecutableCommand<TArgs, THandler> : Command, ICommandHa
 
         IHost host = context.GetHost();
         BuildLinkErrorCode returnCode;
+        CancellationToken token = context.GetCancellationToken();
         try
         {
             THandler handler = host.Services.GetRequiredService<THandler>();
-            returnCode = await handler.ExecuteAsync(arguments, context.GetCancellationToken()).ConfigureAwait(false);
-
-            //returnCode = await ExecuteAsync(arguments, host, context.GetCancellationToken()).ConfigureAwait(false);
+            returnCode = await handler.ExecuteAsync(arguments, token).ConfigureAwait(false);
+        }
+        catch (Exception e) when (
+            ((e.InnerException ?? e) is TaskCanceledException ||
+             (e.InnerException ?? e) is OperationCanceledException)
+            && token.IsCancellationRequested)
+        {
+            ILogger? logger = host.Services.GetService<ILogger<ExecutableCommand<TArgs, THandler>>>();
+            
+            logger?.LogInformation("Command processing was explicitly canceled");
+            logger?.LogDebug(e, "The cancellation exception.");
+            returnCode = BuildLinkErrorCode.OperationTerminatedByUser;
         }
         catch (Exception e)
         {

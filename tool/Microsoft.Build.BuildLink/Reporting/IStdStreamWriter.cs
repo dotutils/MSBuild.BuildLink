@@ -3,9 +3,15 @@
 
 namespace Microsoft.Build.BuildLink.Reporting;
 
-internal interface IStderrWriter
+internal interface IStdStreamWriter
 {
     void Write(string message);
     void WriteLine(string message);
     void WriteLine();
 }
+
+internal interface IStderrWriter : IStdStreamWriter
+{ }
+
+internal interface IStdoutWriter : IStdStreamWriter
+{ }

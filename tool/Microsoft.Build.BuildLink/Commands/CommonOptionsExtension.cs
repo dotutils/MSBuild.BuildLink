@@ -9,7 +9,10 @@ using System.CommandLine.Parsing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Build.BuildLink.Reporting;
+using Microsoft.Build.BuildLink.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static Microsoft.Build.BuildLink.Program;
@@ -59,6 +62,21 @@ namespace Microsoft.Build.BuildLink
             }
 
             return verbosity;
+        }
+
+        internal static IHostBuilder AddCancellationTokenProvider(this IHostBuilder builder)
+        {
+            if (!builder.Properties.TryGetValue(typeof(InvocationContext), out object? val) ||
+                val is not InvocationContext invocationContext)
+            {
+                throw new BuildLinkException("HostBuilder doesn't contain InvocationContext",
+                    BuildLinkErrorCode.InternalError);
+            }
+
+            builder.ConfigureServices(services =>
+                services.AddSingleton(new CancellationTokenHolder(invocationContext.GetCancellationToken())));
+
+            return builder;
         }
 
         internal static ILoggingBuilder ConfigureBuildLinkLogging(this ILoggingBuilder logging, IHostBuilder host)

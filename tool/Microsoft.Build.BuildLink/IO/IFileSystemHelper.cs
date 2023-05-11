@@ -5,8 +5,8 @@ namespace BuildUtils;
 
 internal interface IFileSystemHelper
 {
-    void CopyFilesRecursively(string sourcePath, string targetPath, bool skipTopDotDirs = false);
-    IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null, bool skipTopDotDirs = false);
-    IEnumerable<string> EnumerateFiles(string inputDir, string pattern, SearchOption searchOption, bool skipDotDirs = false);
-    IEnumerable<string> EnumerateDirectories(string inputDir, SearchOption searchOption, bool skipDotDirs = false);
+    void CopyFilesRecursively(string sourcePath, string targetPath, bool skipTopDotDirs = false, CancellationToken token = default);
+    IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null, bool skipTopDotDirs = false, CancellationToken token = default);
+    IEnumerable<string> EnumerateFiles(string inputDir, string pattern, SearchOption searchOption, bool skipDotDirs = false, CancellationToken token = default);
+    IEnumerable<string> EnumerateDirectories(string inputDir, SearchOption searchOption, bool skipDotDirs = false, CancellationToken token = default);
 }

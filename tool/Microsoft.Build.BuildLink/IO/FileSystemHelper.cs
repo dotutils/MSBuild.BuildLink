@@ -16,27 +16,27 @@ namespace BuildUtils
 
     internal class FileSystemHelper : IFileSystemHelper
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<FileSystemHelper> _logger;
         private readonly IFileSystem _fileSystem;
 
-        public FileSystemHelper(ILogger logger, IFileSystem fileSystem) => (_logger, _fileSystem) = (logger, fileSystem);
+        public FileSystemHelper(ILogger<FileSystemHelper> logger, IFileSystem fileSystem) => (_logger, _fileSystem) = (logger, fileSystem);
 
-        public void CopyFilesRecursively(string sourcePath, string targetPath, bool skipTopDotDirs = false)
+        public void CopyFilesRecursively(string sourcePath, string targetPath, bool skipTopDotDirs = false, CancellationToken token = default)
         {
-            foreach (string dirPath in EnumerateDirectories(sourcePath, SearchOption.AllDirectories, skipTopDotDirs))
+            foreach (string dirPath in EnumerateDirectories(sourcePath, SearchOption.AllDirectories, skipTopDotDirs, token))
             {
                 _fileSystem.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
             }
 
-            foreach (string newPath in EnumerateFiles(sourcePath))
+            foreach (string newPath in EnumerateFiles(sourcePath, token: token))
             {
                 _fileSystem.FileCopy(newPath, newPath.Replace(sourcePath, targetPath), true);
             }
         }
 
-        public IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null, bool skipTopDotDirs = false)
+        public IEnumerable<string> EnumerateFiles(string inputDir, IReadOnlyCollection<string>? allowedExtensions = null, bool skipTopDotDirs = false, CancellationToken token = default)
         {
-            var res = EnumerateFiles(inputDir, "*", SearchOption.AllDirectories, skipTopDotDirs);
+            var res = EnumerateFiles(inputDir, "*", SearchOption.AllDirectories, skipTopDotDirs, token);
 
             if (allowedExtensions != null && allowedExtensions.Any())
             {
@@ -46,22 +46,22 @@ namespace BuildUtils
             return res;
         }
 
-        public IEnumerable<string> EnumerateFiles(string inputDir, string pattern, SearchOption searchOption, bool skipDotDirs = false)
+        public IEnumerable<string> EnumerateFiles(string inputDir, string pattern, SearchOption searchOption, bool skipDotDirs = false, CancellationToken token = default)
         {
             return
-                EnumerateFilesInternal(inputDir, pattern, SearchOption.TopDirectoryOnly)
+                EnumerateFilesInternal(inputDir, pattern, SearchOption.TopDirectoryOnly, token)
                     .Concat(
                         searchOption == SearchOption.TopDirectoryOnly
                             ? Enumerable.Empty<string>()
-                            : EnumerateTopLevelDirectories(inputDir, skipDotDirs)
-                                .SelectMany(d => EnumerateFilesInternal(d, pattern, searchOption))
+                            : EnumerateTopLevelDirectories(inputDir, skipDotDirs, token)
+                                .SelectMany(d => EnumerateFilesInternal(d, pattern, searchOption, token))
                     );
         }
         
-        public IEnumerable<string> EnumerateDirectories(string inputDir, SearchOption searchOption, bool skipDotDirs = false)
+        public IEnumerable<string> EnumerateDirectories(string inputDir, SearchOption searchOption, bool skipDotDirs = false, CancellationToken token = default)
         {
             // enumerate top - as list, then concat it with enumeration per each
-            List<string> dirs = EnumerateTopLevelDirectories(inputDir, skipDotDirs);
+            List<string> dirs = EnumerateTopLevelDirectories(inputDir, skipDotDirs, token);
 
             if (searchOption == SearchOption.TopDirectoryOnly)
             {
@@ -76,7 +76,7 @@ namespace BuildUtils
                     );
         }
 
-        private IEnumerable<string> EnumerateFilesInternal(string inputDir, string pattern, SearchOption searchOption)
+        private IEnumerable<string> EnumerateFilesInternal(string inputDir, string pattern, SearchOption searchOption, CancellationToken token)
         {
             IEnumerable<string> files;
             // Need to realize enumeration with ToList - in case of errors
@@ -84,9 +84,9 @@ namespace BuildUtils
                 {
                     AttributesToSkip = default,
                     RecurseSubdirectories = searchOption == SearchOption.AllDirectories
-            }).ToList(), out files))
+            }).ToList(), token, out files))
             {
-                files = EnumerateFilesHelper(inputDir, pattern, searchOption);
+                files = EnumerateFilesHelper(inputDir, pattern, searchOption, token);
             }
 
             return files;
@@ -94,7 +94,7 @@ namespace BuildUtils
 
         private static List<string> emptyList = new List<string>();
 
-        private List<string> EnumerateTopLevelDirectories(string inputDir, bool skipDotDirs)
+        private List<string> EnumerateTopLevelDirectories(string inputDir, bool skipDotDirs, CancellationToken token)
         {
             List<string> dirs;
             // Need to realize enumeration with ToList - in case of errors
@@ -104,7 +104,7 @@ namespace BuildUtils
                             AttributesToSkip = default,
                             RecurseSubdirectories = false
                         })
-                    .Where(p => !skipDotDirs || !Path.GetFileName(p).StartsWith('.')).ToList(), out dirs))
+                    .Where(p => !skipDotDirs || !Path.GetFileName(p).StartsWith('.')).ToList(), token, out dirs))
             {
                 dirs = emptyList;
             }
@@ -112,8 +112,9 @@ namespace BuildUtils
             return dirs;
         }
 
-        private bool TryRunIoOperation<T>(string inputDir, Func<T> func, out T retVal)
+        private bool TryRunIoOperation<T>(string inputDir, Func<T> func, CancellationToken token, out T retVal)
         {
+            token.ThrowIfCancellationRequested();
             try
             {
                 retVal = func();
@@ -137,14 +138,19 @@ namespace BuildUtils
             }
             catch (IOException ioe)
             {
-                _logger.LogError(ioe, $"IO issue with path (possibly invalid junction point) {inputDir}, cannot search it recursively.");
+                _logger.LogError(ioe,
+                    $"IO issue with path (possibly invalid junction point) {inputDir}, cannot search it recursively.");
+            }
+            finally
+            {
+                token.ThrowIfCancellationRequested();
             }
 
             retVal = default(T);
             return false;
         }
 
-        private IEnumerable<string> EnumerateFilesHelper(string inputDir, string pattern, SearchOption searchOption)
+        private IEnumerable<string> EnumerateFilesHelper(string inputDir, string pattern, SearchOption searchOption, CancellationToken token)
         {
             if (searchOption == SearchOption.TopDirectoryOnly)
             {
@@ -152,10 +158,10 @@ namespace BuildUtils
             }
 
             return
-                EnumerateFilesInternal(inputDir, pattern, SearchOption.TopDirectoryOnly)
+                EnumerateFilesInternal(inputDir, pattern, SearchOption.TopDirectoryOnly, token)
                     .Concat(
-                        EnumerateTopLevelDirectories(inputDir, false)
-                            .SelectMany(d => EnumerateFilesInternal(d, pattern, searchOption))
+                        EnumerateTopLevelDirectories(inputDir, false, token)
+                            .SelectMany(d => EnumerateFilesInternal(d, pattern, searchOption, token))
                     );
         }
     }

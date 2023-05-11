@@ -19,7 +19,7 @@ public class NugetInfoRequest
             if (!NuGetVersion.TryParse(packageName, out NuGetVersion v))
             {
                 throw new BuildLinkException($"Unrecognizable nuget version specified: '{packageVersion}'.",
-                    BuildLinkErrorCode.InvalidOption);
+                    BuildLinkErrorCode.InvalidData);
             }
 
             PackageVersion = v;
