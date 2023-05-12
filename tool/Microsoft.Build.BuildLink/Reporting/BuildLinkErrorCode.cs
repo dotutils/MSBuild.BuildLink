@@ -38,6 +38,11 @@ namespace Microsoft.Build.BuildLink.Reporting
         FileSystemWriteFailed = 73,
 
         /// <summary>
+        /// A required argument is missing
+        /// </summary>
+        RequiredOptionMissing = 102,
+
+        /// <summary>
         /// Unrecognized option(s) and/or argument(s) for a command.
         /// </summary>
         InvalidOption = 127,
