@@ -23,7 +23,7 @@ namespace Microsoft.Build.BuildLink.Reporting
         Success = 0,
 
         /// <summary>
-        /// Invalid, corrupted, unexpected data - in files, packaes etc.
+        /// Invalid, corrupted, unexpected data - in files, packages etc.
         /// </summary>
         InvalidData = 65,
 

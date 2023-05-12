@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Runtime;
 using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Build.BuildLink.SourceCodes;
@@ -23,7 +24,7 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         Arity = new ArgumentArity(1, 1)
     };
 
-    private readonly Option<string> _packageVersionOption = new(new[] { "-v", "--version" })
+    private readonly Option<string> _packageVersionOption = new(new[] { "-ver", "--version" })
     {
         Description = "Version of the package",
     };

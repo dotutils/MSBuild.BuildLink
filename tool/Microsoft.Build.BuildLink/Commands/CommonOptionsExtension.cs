@@ -42,8 +42,14 @@ namespace Microsoft.Build.BuildLink
             // IsHidden = true
         };
 
+        private static bool IsGlobalVerbose()
+        {
+            bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_CLI_CONTEXT_VERBOSE"), out bool globalVerbose);
+            return globalVerbose;
+        }
+
         public static VerbosityOptions GetConsoleVerbosityOptionOrDefault(this ParseResult parseResult)
-            => parseResult.GetVerbosityOption(s_consoleVerbosityOption) ?? DefaultConsoleVerbosity;
+            => parseResult.GetVerbosityOption(s_consoleVerbosityOption) ?? (IsGlobalVerbose() ? VerbosityOptions.diagnostic : DefaultConsoleVerbosity);
 
         public static VerbosityOptions? GetFileVerbosityOption(this ParseResult parseResult)
             => parseResult.GetVerbosityOption(s_fileVerbosityOption);
@@ -125,6 +131,9 @@ namespace Microsoft.Build.BuildLink
 
             var minLevel = (LogLevel)Math.Min((int)consoleLogLevel, (int)fileLogLevel);
             logging.SetMinimumLevel(minLevel);
+            // get rid of chatty logs from system librarires
+            logging.AddFilter("Microsoft", LogLevel.Warning);
+            logging.AddFilter("Microsoft.Build.BuildLink", minLevel);
 
             return logging;
         }
