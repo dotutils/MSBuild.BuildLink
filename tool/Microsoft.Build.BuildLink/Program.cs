@@ -34,6 +34,7 @@ namespace Microsoft.Build.BuildLink
                     {
                         services.AddSingleton<GetSourcesCommandHandler>();
                         services.AddSingleton<AddBuildMetadataCommandHandler>();
+                        services.AddSingleton<SourcePackageCommandHandler>();
                         services.AddSingleton<IStderrWriter, DefaultStderrWriter>();
                         services.AddSingleton<IStdoutWriter, DefaultStdoutWriter>();
                         services.AddSingleton<INugetInfoProvider, NugetInfoProvider>();
@@ -67,6 +68,7 @@ namespace Microsoft.Build.BuildLink
 
             root.AddCommand(new GetSourcesCommand());
             root.AddCommand(new AddBuildMetadataCommand());
+            root.AddCommand(new SourcePackageCommand());
             root.AddGlobalOption(CommonOptionsExtension.s_consoleVerbosityOption);
             root.AddGlobalOption(CommonOptionsExtension.s_fileVerbosityOption);
 

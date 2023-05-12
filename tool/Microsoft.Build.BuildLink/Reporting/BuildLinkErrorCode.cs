@@ -58,5 +58,7 @@ namespace Microsoft.Build.BuildLink.Reporting
 
         UnsupportedScenario = 109,
 
+        NotYetImplementedScenario = 110,
+
     }
 }

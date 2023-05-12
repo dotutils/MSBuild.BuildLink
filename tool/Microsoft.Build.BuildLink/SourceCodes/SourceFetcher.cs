@@ -35,7 +35,7 @@ namespace Microsoft.Build.BuildLink.SourceCodes
                 bool repoExisted = _fileSystem.PathExists(destinationDir);
                 if (!repoExisted)
                 {
-                    _logger.LogDebug("Cloning {Url} to {destinationDir}", repositoryMetadata.Url, destinationDir);
+                    _logger.LogInformation("Cloning {Url} to {destinationDir}", repositoryMetadata.Url, destinationDir);
                     repoPath = Repository.Clone(repositoryMetadata.Url, destinationDir,
                         new CloneOptions()
                         {
@@ -65,15 +65,16 @@ namespace Microsoft.Build.BuildLink.SourceCodes
                     _logger.LogInformation(
                         "Attempting to checkout [{commitHashOrBranch}]. Local repository currently on {branch}@{commit}",
                         commitHashOrBranch, repo.Head.FriendlyName, repo.Head.Tip.Sha);
+
+                    var status = repo.RetrieveStatus();
+                    if (status.IsDirty)
+                    {
+                        throw new BuildLinkException(
+                            $"Local source codes have uncommitted changes ({status.Modified.Count()} modifications, {status.Untracked.Count()} untracked, {status.Added.Count()} added, {status.Removed.Count()} removed), cannot proceed checking out",
+                            BuildLinkErrorCode.FileSystemWriteFailed);
+                    }
                 }
 
-                var status = repo.RetrieveStatus();
-                if (status.IsDirty)
-                {
-                    throw new BuildLinkException(
-                        $"Local source codes have uncommitted changes ({status.Modified.Count()} modifications, {status.Untracked.Count()} untracked, {status.Added.Count()} added, {status.Removed.Count()} removed), cannot proceed checking out",
-                        BuildLinkErrorCode.FileSystemWriteFailed);
-                }
                 LibGit2Sharp.Commands.Checkout(repo, commitHashOrBranch);
             }
             catch (LibGit2SharpException e)

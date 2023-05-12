@@ -51,7 +51,9 @@ internal class AddBuildMetadataCommandHandler : ICommandExecutor<AddBuildMetadat
     public async Task<BuildLinkErrorCode> ExecuteAsync(AddBuildMetadataCommandArgs args, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _logger.LogInformation("Running the test of {RepoRootPath}.", args.RepoRootPath);
+        _logger.LogInformation("Running the add-build-metadata command for {RepoRootPath}.", args.RepoRootPath);
+
+        throw new BuildLinkException($"Command is not yet implemented", BuildLinkErrorCode.NotYetImplementedScenario);
 
         return BuildLinkErrorCode.Success;
     }

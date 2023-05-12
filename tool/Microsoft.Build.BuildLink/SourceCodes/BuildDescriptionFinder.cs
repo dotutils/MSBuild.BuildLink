@@ -32,6 +32,8 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
         string? filterByLibFile,
         CancellationToken token)
     {
+        _logger.LogInformation("Searching for build descriptor file for {codes}", repoRoot);
+
         string? filePath = buildDescriptorFile;
         if (!string.IsNullOrEmpty(filePath))
         {
@@ -89,6 +91,8 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
         IReadOnlyList<string> assemblyNames,
         CancellationToken token = default)
     {
+        _logger.LogInformation("Searching for build files in {codes}", repoRoot);
+
         string[] extensionsOfInterest =
             BuildTypeExtensions.ProjectExtensions.Union(BuildTypeExtensions.ScriptExtensions)
                 .Union(new[] { BuildTypeExtensions.SlnExtension }).ToArray();

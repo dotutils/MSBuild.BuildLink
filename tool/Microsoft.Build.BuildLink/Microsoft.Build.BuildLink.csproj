@@ -12,8 +12,10 @@
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <!-- packaging properties -->
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.0.1-alpha</Version>
+    <Version>0.0.4-alpha</Version>
     <Title>BuildLink dotnet tool</Title>
+    <PackageId>JanK.BuildLink</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- SourceLink properties -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -61,7 +63,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="CommandExecutionUtils\" />
+    <None Include="..\..\docs\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>

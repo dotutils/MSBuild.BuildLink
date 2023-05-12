@@ -102,6 +102,7 @@ namespace Microsoft.Build.BuildLink
                 logging.AddConsole();
             }
 
+            // if logging is not specified on command line - try to see if specified in appsettings.json
             if (!fileLogLevelOrNull.HasValue || fileLogLevelOrNull < LogLevel.None)
             {
                 //TODO: Arch: do we want to try to fetch app.json everytime when file logging is not explicitly disabled?
@@ -117,7 +118,7 @@ namespace Microsoft.Build.BuildLink
 
                     logging.AddFile(loggingSection);
                 }
-                else
+                else if (fileLogLevel < LogLevel.None)
                 {
                     logging.AddFile("build-link.log", cfg =>
                     {
