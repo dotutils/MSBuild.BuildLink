@@ -3,7 +3,7 @@
 
 namespace Microsoft.Build.BuildLink.Reporting;
 
-internal interface IStdStreamWriter
+internal interface IStdStreamWriter: IDisposable
 {
     void Write(string message);
     void WriteLine(string message);

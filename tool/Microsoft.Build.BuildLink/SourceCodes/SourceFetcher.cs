@@ -76,11 +76,26 @@ namespace Microsoft.Build.BuildLink.SourceCodes
                 }
 
                 LibGit2Sharp.Commands.Checkout(repo, commitHashOrBranch);
+
+                if(repo.Submodules.Any())
+                {
+                    _logger.LogError($"Repository {repoPath} has {repo.Submodules.Count()} Submodule(s). Initializing/Recursing/Fetching submodules are not yet supported");
+                }
             }
             catch (LibGit2SharpException e)
             {
                 throw new BuildLinkException("Checking out of source codes failed: " + e.Message,
                     BuildLinkErrorCode.FileSystemWriteFailed, e);
+            }
+            // https://github.com/dotnet/Nerdbank.GitVersioning/issues/396 workaround
+            finally
+            {
+                string? leftoverDir = _fileSystem.EnumerateDirectories(destinationDir).FirstOrDefault(p =>
+                    Path.GetFileName(p).Contains("_git2_", StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(leftoverDir))
+                {
+                    _fileSystem.DeleteDirectory(leftoverDir);
+                }
             }
 
             string GetCommitHashOrBranch(RepositoryMetadata repositoryMetadata, LibGit2Sharp.Repository repo)
@@ -91,16 +106,6 @@ namespace Microsoft.Build.BuildLink.SourceCodes
                         ? repo.Head.Reference.TargetIdentifier
                         : repo.Head.FriendlyName)
                     : revisionRef;
-            }
-
-            // https://github.com/dotnet/Nerdbank.GitVersioning/issues/396 workaround
-            {
-                string? leftoverDir = _fileSystem.EnumerateDirectories(destinationDir).FirstOrDefault(p =>
-                    Path.GetFileName(p).Contains("_git2_", StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(leftoverDir))
-                {
-                    _fileSystem.DeleteDirectory(leftoverDir);
-                }
             }
 
             return destinationDir;

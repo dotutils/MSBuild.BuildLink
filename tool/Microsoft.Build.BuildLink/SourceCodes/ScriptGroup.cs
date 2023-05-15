@@ -1,4 +1,6 @@
 ﻿using System.Runtime.InteropServices;
+using Microsoft.Build.BuildLink.Reporting;
+using Microsoft.Build.BuildLink.Utils;
 
 namespace Microsoft.Build.BuildLink.SourceCodes;
 
@@ -13,6 +15,21 @@ internal class ScriptGroup : Dictionary<OSPlatform, Script>
     public static ScriptGroup FromPath(string path)
     {
         return string.IsNullOrEmpty(path) ? NullScript : new ScriptGroup(path);
+    }
+
+    public static ScriptGroup FromPaths(IEnumerable<string> paths)
+    {
+        Dictionary<OSPlatform, Script> scripts = new Dictionary<OSPlatform, Script>();
+        foreach (string path in paths)
+        {
+            Script script = Script.FromPath(path);
+            if (!scripts.TryAdd(script.ScriptType.ToDefaultOsPlatform(), script))
+            {
+                throw new BuildLinkException($"Attempt to add [{path}], while ScriptGroup already contains script for that platform ({scripts.Values.ToCsvString()})", BuildLinkErrorCode.InternalError);
+            }
+        }
+
+        return scripts.Any() ? new ScriptGroup(scripts.Values) : NullScript;
     }
 
     public ScriptGroup(string scriptFilePath)

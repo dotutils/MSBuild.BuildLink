@@ -7,11 +7,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Build.BuildLink.Reporting
+namespace Microsoft.Build.BuildLink.IO
 {
-    internal class DefaultStdoutWriter : StdStreamWriterBase, IStdoutWriter
+    internal enum FileCreateOptions
     {
-        protected override TextWriter Writer => Console.Out;
-        public override void Dispose() => Writer.Flush();
+        ThrowIfExists,
+        Append,
+        Overwrite
     }
 }

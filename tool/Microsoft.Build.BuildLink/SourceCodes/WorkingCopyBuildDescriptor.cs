@@ -2,19 +2,28 @@
 
 internal class WorkingCopyBuildDescriptor
 {
-    public WorkingCopyBuildDescriptor(ScriptGroup workingCopyInitScript, ScriptGroup preBuildScript, ScriptGroup buildScript,
-        string workingCopySolutionFile, NugetBuildDescriptor[] nugetBuildDescriptors)
+    public WorkingCopyBuildDescriptor(
+        ScriptGroup workingCopyInitScript,
+        ScriptGroup preBuildScript,
+        ToolingVersionInfo? toolingVersionInfo,
+        ScriptGroup buildScript,
+        string workingCopySolutionFile,
+        NugetBuildDescriptor[] nugetBuildDescriptors)
     {
         WorkingCopyInitScript = workingCopyInitScript;
         PreBuildScript = preBuildScript;
+        ToolingVersionInfo = toolingVersionInfo;
         BuildScript = buildScript;
         WorkingCopySolutionFile = workingCopySolutionFile;
         NugetBuildDescriptors = nugetBuildDescriptors;
     }
 
-    public WorkingCopyBuildDescriptor(ScriptGroup buildScript, string workingCopySolutionFile,
+    public WorkingCopyBuildDescriptor(
+        ScriptGroup buildScript,
+        string workingCopySolutionFile,
+        ToolingVersionInfo? toolingVersionInfo,
         NugetBuildDescriptor[] nugetBuildDescriptors)
-        : this(ScriptGroup.NullScript, ScriptGroup.NullScript, buildScript, workingCopySolutionFile, nugetBuildDescriptors)
+        : this(ScriptGroup.NullScript, ScriptGroup.NullScript, toolingVersionInfo, buildScript, workingCopySolutionFile, nugetBuildDescriptors)
     { }
 
     // for deserialization
@@ -38,7 +47,7 @@ internal class WorkingCopyBuildDescriptor
             return null;
         }
 
-        return new WorkingCopyBuildDescriptor(WorkingCopyInitScript, PreBuildScript, BuildScript,
+        return new WorkingCopyBuildDescriptor(WorkingCopyInitScript, PreBuildScript, ToolingVersionInfo, BuildScript,
             WorkingCopySolutionFile, new[] { nugetBuildDescriptor });
     }
 
@@ -50,6 +59,10 @@ internal class WorkingCopyBuildDescriptor
     /// Optional - script to be used for build initialization - to be run before each script (e.g. restore, if not part of the build).
     /// </summary>
     public ScriptGroup PreBuildScript { get; init; }
+    /// <summary>
+    /// Optional - information about tooling version used to build the package
+    /// </summary>
+    public ToolingVersionInfo? ToolingVersionInfo { get; init; }
     /// <summary>
     /// Optional - script that can be used for building of the whole working copy (as an alternative for the individual nuget builds)
     /// </summary>

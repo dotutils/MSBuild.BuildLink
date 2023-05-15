@@ -24,5 +24,6 @@ namespace Microsoft.Build.BuildLink.IO
         public void FileCopy(string sourceFileName, string destFileName, bool overwrite) => File.Copy(sourceFileName, destFileName, overwrite);
         public IEnumerable<string> EnumerateFiles(string path, string searchPattern, EnumerationOptions enumerationOptions)
             => Directory.EnumerateFiles(path, searchPattern, enumerationOptions);
+        public StreamWriter CreateFileStream(string path, bool append) => new StreamWriter(path, append);
     }
 }

@@ -10,12 +10,9 @@ using NuGet.Protocol.Plugins;
 
 namespace Microsoft.Build.BuildLink.Reporting
 {
-    internal class DefaultStderrWriter: IStderrWriter
+    internal class DefaultStderrWriter : StdStreamWriterBase, IStderrWriter
     {
-        public void Write(string message) => Console.Error.Write(message);
-
-        public void WriteLine(string message) => Console.Error.WriteLine(message);
-
-        public void WriteLine() => Console.Error.WriteLine();
+        protected override TextWriter Writer => Console.Error;
+        public override void Dispose() => Writer.Flush();
     }
 }

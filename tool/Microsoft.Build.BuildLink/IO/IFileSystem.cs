@@ -17,4 +17,5 @@ internal interface IFileSystem
 
     void FileCopy(string sourceFileName, string destFileName, bool overwrite);
     IEnumerable<string> EnumerateFiles(string path, string searchPattern, EnumerationOptions enumerationOptions);
+    StreamWriter CreateFileStream(string path, bool append);
 }

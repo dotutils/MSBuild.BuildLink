@@ -2,6 +2,7 @@
 using BuildUtils;
 using Microsoft.Build.BuildLink.IO;
 using Microsoft.Build.BuildLink.Reporting;
+using Microsoft.Build.BuildLink.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.SourceCodes;
@@ -99,6 +100,7 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
 
         var discoveredFiles =
             _fileSystemHelper.EnumerateFiles(repoRoot, extensionsOfInterest, token: token)
+                .Select(p => p.RemoveFromStart(repoRoot.EndsWith(Path.DirectorySeparatorChar) ? repoRoot : (repoRoot + Path.DirectorySeparatorChar)))
                 .GroupBy(p => Path.GetExtension(p) switch
                 {
                     { } extension when extension.Equals(BuildTypeExtensions.SlnExtension, StringComparison.CurrentCultureIgnoreCase) =>
@@ -114,14 +116,14 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
 
         // script
         ScriptGroup buildScript = GetBuildFile(discoveredFiles, BuildType.BuildScript, () => ScriptGroup.NullScript,
-            candidates => ScriptGroup.FromPath(FilterBuildScripts(repoRoot, candidates)));
+            FilterBuildScripts);
 
         List<string> unifiedAssemblyNames = assemblyNames
             .GroupBy(n => n).Select(g => g.Key ?? string.Empty).ToList();
 
         // sln
         string sln = GetBuildFile(discoveredFiles, BuildType.SolutionFile, () => string.Empty,
-            candidates => FilterProjAndSlnList(repoRoot, BuildType.SolutionFile, candidates,
+            candidates => FilterProjAndSlnList(BuildType.SolutionFile, candidates, repoRoot,
                 unifiedAssemblyNames.Count == 1 ? unifiedAssemblyNames[0] : string.Empty, packageName));
 
         // project
@@ -131,7 +133,7 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
             () => new Dictionary<string, string>(),
             candidates => unifiedAssemblyNames.ToDictionary(
                 assemblyName => assemblyName,
-                assemblyName => FilterProjAndSlnList(repoRoot, BuildType.ProjectFile, candidates,
+                assemblyName => FilterProjAndSlnList(BuildType.ProjectFile, candidates, repoRoot,
                     assemblyName, packageName))
         );
         string msBuildProject = string.Empty;
@@ -142,8 +144,14 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
             projectsPerLib = new Dictionary<string, string>();
         }
 
+        ToolingVersionInfo tvi = null;
+        if(_fileSystem.FileExists(Path.Combine(repoRoot, "global.json")))
+        {
+            tvi = new ToolingVersionInfo(true);
+        }
+
         NugetBuildDescriptor nugetBuildDescriptor = new(packageName, msBuildProject, projectsPerLib);
-        WorkingCopyBuildDescriptor result = new(buildScript, sln, new[] { nugetBuildDescriptor });
+        WorkingCopyBuildDescriptor result = new(buildScript, sln, tvi, new[] { nugetBuildDescriptor });
         return result;
     }
 
@@ -189,8 +197,7 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
         }
     }
 
-    private string FilterBuildScripts(
-        string repoRoot,
+    private ScriptGroup FilterBuildScripts(
         List<string> candidates)
     {
         //first in root, then in build, than in src, then in sources
@@ -222,16 +229,17 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
             int locationRank;
             switch (Path.GetDirectoryName(fullPath))
             {
-                case string d when d.Equals(repoRoot, StringComparison.InvariantCultureIgnoreCase):
+                // root doesn't have parent dir
+                case string d when d.Equals(string.Empty, StringComparison.InvariantCultureIgnoreCase):
                     locationRank = 1;
                     break;
-                case string d when d.Equals(Path.Combine(repoRoot, "build"), StringComparison.InvariantCultureIgnoreCase):
+                case string d when d.Equals("build", StringComparison.InvariantCultureIgnoreCase):
                     locationRank = 2;
                     break;
-                case string d when d.Equals(Path.Combine(repoRoot, "src"), StringComparison.InvariantCultureIgnoreCase):
+                case string d when d.Equals("src", StringComparison.InvariantCultureIgnoreCase):
                     locationRank = 3;
                     break;
-                case string d when d.Equals(Path.Combine(repoRoot, "sources"), StringComparison.InvariantCultureIgnoreCase):
+                case string d when d.Equals("sources", StringComparison.InvariantCultureIgnoreCase):
                     locationRank = 4;
                     break;
                 default:
@@ -239,50 +247,47 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
             }
 
             int extensionRank;
-            switch (Path.GetExtension(fullPath))
+
+            string extension = Path.GetExtension(fullPath);
+            extensionRank = Array.FindIndex(BuildTypeExtensions.ScriptExtensions, ext => ext.Equals(extension, StringComparison.InvariantCultureIgnoreCase));
+            if(extensionRank == -1)
             {
-                case string d when d.Equals(".ps1", StringComparison.InvariantCultureIgnoreCase):
-                    extensionRank = 1;
-                    break;
-                case string d when d.Equals(".cmd", StringComparison.InvariantCultureIgnoreCase):
-                    extensionRank = 2;
-                    break;
-                case string d when d.Equals(".bat", StringComparison.InvariantCultureIgnoreCase):
-                    extensionRank = 3;
-                    break;
-                case string d when BuildTypeExtensions.ScriptExtensions.Contains(d, StringComparer.InvariantCultureIgnoreCase):
-                    extensionRank = 4;
-                    break;
-                default:
-                    return filterOutRank;
+                return filterOutRank;
             }
 
             return locationRank * 100 + nameRank * 10 + extensionRank;
         }
 
+        //var possibleMatches = candidates
+        //    .Select(path => (path, rank: GetScriptFileAscendingRank(path)))
+        //    .Where(p => p.rank != filterOutRank)
+        //    .OrderBy(p => p.rank)
+        //    .Select(p => p.path)
+        //    .ToList();
+
         var possibleMatches = candidates
             .Select(path => (path, rank: GetScriptFileAscendingRank(path)))
             .Where(p => p.rank != filterOutRank)
-            .OrderBy(p => p.rank)
-            .Select(p => p.path)
+            .GroupBy(p => p.path.ToScriptType().ToDefaultOsPlatform())
+            .Select(g => g.OrderBy(p => p.rank).First().path)
             .ToList();
 
-        var bestMatch = possibleMatches.FirstOrDefault();
+        //var bestMatch = possibleMatches.FirstOrDefault();
 
-        if (string.IsNullOrEmpty(bestMatch))
+        if (possibleMatches.Count == 0)
         {
             _logger.LogInformation(
                 "Couldn't find exactly one matching {fileType} (possible matches: {matchesCount}). So assuming no {fileType} exists.",
                 BuildType.BuildScript.ToHumanReadableString(), possibleMatches.Count, BuildType.BuildScript.ToHumanReadableString());
         }
 
-        return bestMatch ?? string.Empty;
+        return ScriptGroup.FromPaths(possibleMatches);
     }
 
     private string FilterProjAndSlnList(
-        string repoRoot,
         BuildType buildType,
         List<string> candidates,
+        string repoRoot,
         string assemblyName,
         string packageName)
     {
@@ -315,7 +320,7 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
         {
             var prefilteredByContnt = candidates
                 .Select(p => (
-                    hasExplicitAssemblyName: TryGetAssemblyName(p, out string explicitAssemblyName),
+                    hasExplicitAssemblyName: TryGetAssemblyName(Path.Combine(repoRoot, p), out string explicitAssemblyName),
                     explicitAssemblyName,
                     path: p))
                 .Where(p => p.hasExplicitAssemblyName).ToList();
@@ -343,21 +348,22 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
             }
         }
 
-        var rootFiles = FilterPathsByParentFolder(repoRoot, candidates);
+        // files in root don't have parent folder
+        var rootFiles = FilterPathsByParentFolder(string.Empty, candidates);
 
         if (rootFiles.Count == 1)
         {
             return rootFiles[0];
         }
 
-        var srcFiles = FilterPathsByParentFolder(Path.Combine(repoRoot, "src"), candidates);
+        var srcFiles = FilterPathsByParentFolder("src", candidates);
 
         if (srcFiles.Count == 1)
         {
             return srcFiles[0];
         }
 
-        var sourceFiles = FilterPathsByParentFolder(Path.Combine(repoRoot, "sources"), candidates);
+        var sourceFiles = FilterPathsByParentFolder("sources", candidates);
 
         if (sourceFiles.Count == 1)
         {

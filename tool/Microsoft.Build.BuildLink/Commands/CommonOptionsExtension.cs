@@ -124,7 +124,7 @@ namespace Microsoft.Build.BuildLink
                     {
                         cfg.Append = true;
                         cfg.MinLevel = fileLogLevel;
-                        cfg.FileSizeLimitBytes = 10000;
+                        cfg.FileSizeLimitBytes = 1000000;
                         cfg.MaxRollingFiles = 3;
                     });
                 }

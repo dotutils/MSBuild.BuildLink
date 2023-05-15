@@ -59,6 +59,22 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         Description = "Local destination folder for fetching sources. If exists, proper repository and version of codes will be validated/checked-out.",
     };
 
+    private readonly Option<string> _sourceCodebaseDirOption = new(new[] { "--checkout-base-dir" })
+    {
+        Description = "Local destination folder for fetching sources - the name and version of package is appended (as subdir).",
+        IsHidden = true,
+    };
+
+    private readonly Option<string> _flushBuildJsonPathOption = new(new[] { "--flush-buildlink-path" })
+    {
+        Description = "Local destination file to flush the generated buildlink.json",
+    };
+
+    private readonly Option<bool> _buildJsonAppendOption = new(new[] { "--buildlink-append" })
+    {
+        Description = "The specified local destination file to flush the generated buildlink.json should be appended if exists",
+    };
+
     public GetSourcesCommand()
         : base(CommandName, "Fetches the sources for the given package")
     {
@@ -70,6 +86,9 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
         AddOption(_libFileOption);
         AddOption(_buildFilePathOption);
         AddOption(_ignoreBuildLinkJsonOption);
+        AddOption(_flushBuildJsonPathOption);
+        AddOption(_buildJsonAppendOption);
+        AddOption(_sourceCodebaseDirOption);
     }
 
     protected internal override GetSourcesCommandArgs ParseContext(ParseResult parseResult)
@@ -82,7 +101,10 @@ internal class GetSourcesCommand : ExecutableCommand<GetSourcesCommandArgs, GetS
             parseResult.GetValueForOption(_allowPrereleaseOption),
             parseResult.GetValueForOption(_packageSourceOption),
             parseResult.GetValueForOption(_sourceCodeRootOption),
-            parseResult.GetValueForOption(_libFileOption)
+            parseResult.GetValueForOption(_sourceCodebaseDirOption),
+            parseResult.GetValueForOption(_libFileOption),
+            parseResult.GetValueForOption(_flushBuildJsonPathOption),
+            parseResult.GetValueForOption(_buildJsonAppendOption)
         );
     }
 }
@@ -95,6 +117,7 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
     private readonly IBuildDescriptionFinder _buildDescriptionFinder;
     private readonly IBuildDescriptorSerializer _buildDescriptorSerializer;
     private readonly IStdoutWriter _stdoutWriter;
+    private readonly IFileStreamFactory _streamFactory;
 
     public GetSourcesCommandHandler(
         ILogger<GetSourcesCommandHandler> logger,
@@ -102,7 +125,8 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
         ISourceFetcher sourceFetcher,
         IBuildDescriptionFinder buildDescriptionFinder,
         IBuildDescriptorSerializer buildDescriptorSerializer,
-        IStdoutWriter stdoutWriter)
+        IStdoutWriter stdoutWriter,
+        IFileStreamFactory streamFactory)
     {
         _logger = logger;
         _nugetInfoProvider = nugetInfoProvider;
@@ -110,6 +134,7 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
         _buildDescriptionFinder = buildDescriptionFinder;
         _buildDescriptorSerializer = buildDescriptorSerializer;
         _stdoutWriter = stdoutWriter;
+        _streamFactory = streamFactory;
     }
 
     public async Task<BuildLinkErrorCode> ExecuteAsync(GetSourcesCommandArgs args, CancellationToken cancellationToken)
@@ -153,6 +178,7 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
         }
 
         string sourcesDestinationDir = args.SourcesCodesDownloadRoot ?? $"{args.PackageName}.{info.Version}";
+        sourcesDestinationDir = Path.Combine(args.SourcesCheckoutBasePath ?? string.Empty, sourcesDestinationDir);
 
         cancellationToken.ThrowIfCancellationRequested();
         _sourceFetcher.FetchRepository(info.Repository, sourcesDestinationDir);
@@ -181,9 +207,18 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
             _logger.LogDebug(descriptorString);
         }
 
-        _stdoutWriter.WriteLine("----------------------------- Build description info -----------------------------");
-        _stdoutWriter.WriteLine(descriptorString);
-        _stdoutWriter.WriteLine("----------------------------------------------------------------------------------");
+        IStdoutWriter writer = _stdoutWriter;
+        IStdoutWriter? delimiterWriter = _stdoutWriter;
+        if (!string.IsNullOrEmpty(args.FlushBuildJsonPath))
+        {
+            writer = _streamFactory.CreateStreamWriter<IStdoutWriter>(args.FlushBuildJsonPath, args.AppendBuildJsonOnFlush ? IO.FileCreateOptions.Append : IO.FileCreateOptions.ThrowIfExists);
+            delimiterWriter = null;
+        }
+
+        delimiterWriter?.WriteLine("----------------------------- Build description info -----------------------------");
+        writer.WriteLine(descriptorString);
+        delimiterWriter?.WriteLine("----------------------------------------------------------------------------------");
+        writer.Dispose();
 
         return BuildLinkErrorCode.Success;
     }

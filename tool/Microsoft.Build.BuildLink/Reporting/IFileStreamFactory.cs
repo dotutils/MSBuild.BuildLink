@@ -6,12 +6,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Build.BuildLink.IO;
 
 namespace Microsoft.Build.BuildLink.Reporting
 {
-    internal class DefaultStdoutWriter : StdStreamWriterBase, IStdoutWriter
+    internal interface IFileStreamFactory
     {
-        protected override TextWriter Writer => Console.Out;
-        public override void Dispose() => Writer.Flush();
+        T CreateStreamWriter<T>(string path, FileCreateOptions fileCreateOptions) where T : class, IStdStreamWriter;
     }
 }

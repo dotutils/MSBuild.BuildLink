@@ -45,6 +45,7 @@ namespace Microsoft.Build.BuildLink
                         services.AddSingleton<IFileSystemHelper, FileSystemHelper>();
                         services.AddSingleton<IBuildDescriptorSerializer, BuildDescriptorSerializer>();
                         services.AddSingleton<IBuildDescriptionFinder, BuildDescriptionFinder>();
+                        services.AddSingleton<IFileStreamFactory, FileStreamFactory>();
                     })
                     .AddCancellationTokenProvider()
                     .ConfigureLogging(logging =>

@@ -6,7 +6,7 @@ internal static class BuildTypeExtensions
 {
     public static readonly string SlnExtension = ".sln";
     public static readonly string[] ProjectExtensions = new[] { ".csproj", ".vbproj", ".fsproj" };
-    public static readonly string[] ScriptExtensions = new[] { ".cmd", ".ps1", ".bat", ".sh", ".cake" };
+    public static readonly string[] ScriptExtensions = new[] { ".ps1", ".cmd", ".bat", ".sh", ".cake" };
 
     public static string ToShortString(this BuildType buildType)
         =>
@@ -72,5 +72,6 @@ internal static class BuildTypeExtensions
     public static bool HasNonMsBuildInfo(this WorkingCopyBuildDescriptor descriptor)
         => !descriptor.BuildScript.IsNull() ||
            !descriptor.PreBuildScript.IsNull() ||
-           !descriptor.WorkingCopyInitScript.IsNull();
+           !descriptor.WorkingCopyInitScript.IsNull() ||
+           (descriptor.ToolingVersionInfo?.GlobalJsonPresent ?? false);
 }

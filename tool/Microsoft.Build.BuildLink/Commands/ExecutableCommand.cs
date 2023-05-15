@@ -61,8 +61,8 @@ internal abstract class ExecutableCommand<TArgs, THandler> : Command, ICommandHa
         {
             ILogger? logger = host.Services.GetService<ILogger<ExecutableCommand<TArgs, THandler>>>();
 
-            logger?.LogError("Executed command failed");
-            logger?.LogError(e.Message);
+            logger?.LogError("Executed command failed: {msg}", e.Message);
+            logger?.LogInformation(e, "Exception occurred.");
             BuildLinkException? ex = e as BuildLinkException;
             returnCode = ex?.BuildLinkErrorCode ?? BuildLinkErrorCode.InternalError;
         }
