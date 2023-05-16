@@ -18,6 +18,9 @@ namespace Runner
     {
         static void Main(string[] args)
         {
+            GetSources();
+            return;
+
             LibStats();
             return;
 
@@ -79,6 +82,24 @@ namespace Runner
 
             Console.WriteLine("All done");
             Console.ReadKey();
+        }
+
+        private static void GetSources()
+        {
+            GetSourcesHelper gsh = new GetSourcesHelper();
+            //gsh.GetSources(new[] { "newtonsoft.json" });
+
+            NugetDownloader nd = new NugetDownloader();
+
+            var nugetsWithSources = StatsParser.FetchTopStats()
+                         .Where(nugetStatsRecord => nugetStatsRecord.Item2 != null)
+                         .Select(n => n.Item1.Id).ToList();
+
+            var nugetsWithoutSources = StatsParser.FetchTopStats()
+             .Where(nugetStatsRecord => nugetStatsRecord.Item2 == null)
+             .Select(n => n.Item1.Id).ToList();
+
+            gsh.GetSources(nugetsWithSources);
         }
 
         private static void LibStats(string path = @"C:\nugets\extracted")
