@@ -6,6 +6,7 @@ namespace Microsoft.Build.BuildLink.SourceCodes;
 internal interface IBuildDescriptorSerializer
 {
     string WriteToString(WorkingCopyBuildDescriptor buildDescriptor);
+    string PrependProperty(string jsonString, string propertyName, string propertyValue);
     WorkingCopyBuildDescriptor? ReadFromString(string value);
     Task<WorkingCopyBuildDescriptor?> ReadFromFileAsync(string filePath, CancellationToken token);
     Task WriteToFile(string filePath, WorkingCopyBuildDescriptor buildDescriptor, CancellationToken token);

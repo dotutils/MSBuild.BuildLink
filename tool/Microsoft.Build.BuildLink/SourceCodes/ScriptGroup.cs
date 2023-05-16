@@ -17,6 +17,9 @@ internal class ScriptGroup : Dictionary<OSPlatform, Script>
         return string.IsNullOrEmpty(path) ? NullScript : new ScriptGroup(path);
     }
 
+    public static ScriptGroup FromPaths(params string[] paths)
+        => FromPaths((IEnumerable<string>)paths);
+
     public static ScriptGroup FromPaths(IEnumerable<string> paths)
     {
         Dictionary<OSPlatform, Script> scripts = new Dictionary<OSPlatform, Script>();

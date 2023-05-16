@@ -2,7 +2,7 @@
   "profiles": {
     "Microsoft.Build.PackageSourcing": {
       "commandName": "Project",
-      "commandLineArgs": "get-sources mongodb.driver --verbosity q --checkout-base-dir C:\\src-trsh "
+      "commandLineArgs": "get-sources bah"
     }
   }
 }

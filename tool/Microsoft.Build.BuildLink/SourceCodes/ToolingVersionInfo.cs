@@ -20,6 +20,12 @@ namespace Microsoft.Build.BuildLink.SourceCodes
             GlobalJsonPresent = globalJsonPresent;
         }
 
+        public ToolingVersionInfo(bool globalJsonPresent, string versionFromCompilerFlags)
+        {
+            GlobalJsonPresent = globalJsonPresent;
+            VersionFromCompilerFlags = versionFromCompilerFlags;
+        }
+
         public bool GlobalJsonPresent { get; init; }
         public string VersionFromCompilerFlags { get; init; }
     }

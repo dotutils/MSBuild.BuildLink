@@ -14,4 +14,6 @@ internal interface IBuildDescriptionFinder
         string packageName,
         IReadOnlyList<string> assemblyNames,
         CancellationToken token = default);
+
+    WorkingCopyBuildDescriptor CreateSample();
 }

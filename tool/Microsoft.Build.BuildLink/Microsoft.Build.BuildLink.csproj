@@ -53,16 +53,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="refs\NuGetPackageExplorer.Core.dll">
-      <Private>True</Private>
-    </Reference>
-
-    <Reference Include="refs\NuGetPackageExplorer.Types.dll">
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\..\docs\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 

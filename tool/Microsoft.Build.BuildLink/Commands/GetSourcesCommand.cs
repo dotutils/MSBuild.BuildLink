@@ -216,7 +216,7 @@ internal class GetSourcesCommandHandler : ICommandExecutor<GetSourcesCommandArgs
         }
 
         delimiterWriter?.WriteLine("----------------------------- Build description info -----------------------------");
-        writer.WriteLine(descriptorString);
+        writer.WriteLine(_buildDescriptorSerializer.PrependProperty(descriptorString, "RepoRoot",  Path.GetFullPath(sourcesDestinationDir)));
         delimiterWriter?.WriteLine("----------------------------------------------------------------------------------");
         writer.Dispose();
 

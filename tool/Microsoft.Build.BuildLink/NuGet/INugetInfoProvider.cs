@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
-using NuGetPe;
 using System.Threading;
 
 namespace Microsoft.Build.BuildLink.NuGet

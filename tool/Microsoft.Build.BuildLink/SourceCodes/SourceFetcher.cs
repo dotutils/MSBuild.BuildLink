@@ -5,6 +5,7 @@ using LibGit2Sharp;
 using Microsoft.Build.BuildLink.IO;
 using Microsoft.Build.BuildLink.NuGet;
 using Microsoft.Build.BuildLink.Reporting;
+using Microsoft.Build.BuildLink.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.SourceCodes
@@ -35,8 +36,9 @@ namespace Microsoft.Build.BuildLink.SourceCodes
                 bool repoExisted = _fileSystem.PathExists(destinationDir);
                 if (!repoExisted)
                 {
-                    _logger.LogInformation("Cloning {Url} to {destinationDir}", repositoryMetadata.Url, destinationDir);
-                    repoPath = Repository.Clone(repositoryMetadata.Url, destinationDir,
+                    string url = repositoryMetadata.Url.Replace("git://", "https://", StringComparison.InvariantCultureIgnoreCase);
+                    _logger.LogInformation("Cloning {Url} to {destinationDir}", url, destinationDir);
+                    repoPath = Repository.Clone(url, destinationDir,
                         new CloneOptions()
                         {
                             //BranchName = revision,

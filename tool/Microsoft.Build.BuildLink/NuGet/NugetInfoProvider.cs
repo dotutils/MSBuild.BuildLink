@@ -206,6 +206,17 @@ internal class NugetInfoProvider : INugetInfoProvider
             packageDownloader.Dispose();
 
             // The easier way - but requires referencing NugetPackageExplorer binaries
+            //
+              //  <ItemGroup>
+              //  <Reference Include="refs\NuGetPackageExplorer.Core.dll">
+              //    <Private>True</Private>
+              //  </Reference>
+
+              //  <Reference Include="refs\NuGetPackageExplorer.Types.dll">
+              //    <Private>True</Private>
+              //  </Reference>
+              //</ItemGroup>
+            //
             //using NuGetPe.ZipPackage zp = new ZipPackage(packagePath);
             //string m = zp.Repository.Commit;
 

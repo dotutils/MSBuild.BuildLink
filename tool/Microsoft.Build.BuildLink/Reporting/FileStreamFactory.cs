@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Build.BuildLink.IO;
-using NuGetPe;
 using IFileSystem = Microsoft.Build.BuildLink.IO.IFileSystem;
 
 namespace Microsoft.Build.BuildLink.Reporting

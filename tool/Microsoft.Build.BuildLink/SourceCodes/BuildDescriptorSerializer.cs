@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
@@ -13,6 +14,16 @@ internal class BuildDescriptorSerializer : IBuildDescriptorSerializer
     public string WriteToString(WorkingCopyBuildDescriptor buildDescriptor)
     {
         return JsonSerializer.Serialize(buildDescriptor, _serializerOptions);
+    }
+
+    public string PrependProperty(string jsonString, string propertyName, string propertyValue)
+    {
+        // Workarounding System.Text.Json lack of ability to insert at index
+        string newstr = $"{{{Environment.NewLine}\"{propertyName}\": {JsonValue.Create(propertyValue).ToJsonString()},"
+                        + jsonString.Substring(1);
+
+        var node = JsonNode.Parse(newstr);
+        return node.ToJsonString(_serializerOptions);
     }
 
     public WorkingCopyBuildDescriptor? ReadFromString(string value)
@@ -29,6 +40,7 @@ internal class BuildDescriptorSerializer : IBuildDescriptorSerializer
     public async Task WriteToFile(string filePath, WorkingCopyBuildDescriptor buildDescriptor, CancellationToken token)
     {
         await using var stream = File.OpenWrite(filePath);
+        stream.SetLength(0);
         await JsonSerializer.SerializeAsync(stream, buildDescriptor, _serializerOptions, token)
             .ConfigureAwait(false);
     }

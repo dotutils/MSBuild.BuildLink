@@ -155,23 +155,57 @@ internal class BuildDescriptionFinder : IBuildDescriptionFinder
         return result;
     }
 
+    public WorkingCopyBuildDescriptor CreateSample()
+    {
+        return new WorkingCopyBuildDescriptor(
+            workingCopyInitScript: ScriptGroup.FromPaths("build/init.ps1", "build/init.sh"),
+            preBuildScript: new ScriptGroup("build/restore.cake"),
+            toolingVersionInfo: new ToolingVersionInfo(true, "Roslyn:4.4.0"),
+            buildScript: ScriptGroup.FromPaths("build/build.ps1", "build/build.sh", "build/build.cake"),
+            workingCopySolutionFile: "src/my-project.sln",
+            new[]
+            {
+                new NugetBuildDescriptor(
+                    "Package01",
+                    new ScriptGroup("src/package01/build.cake"),
+                    "src/package01/package01.csproj",
+                    new Dictionary<string, ScriptGroup>(),
+                    new Dictionary<string, string>()),
+
+                new NugetBuildDescriptor(
+                    "Package02",
+                    "src/package01/package02.fsproj",
+                    new Dictionary<string, string>()),
+
+                new NugetBuildDescriptor(
+                    "Package03",
+                    string.Empty,
+                    new Dictionary<string, string>()
+                    {
+                        {"net6/Package03.dll", "src/package03/net6/package03.vbproj"},
+                        {"net7/Package03.dll", "src/package03/net7/package03.csproj"}
+                    }),
+            }
+        );
+    }
+
     private string? FindBuildDescriptorFile(string repoRoot)
     {
-        const string descriptorFileName = "buildlink.json";
-        string descriptorFile = Path.Combine(repoRoot, descriptorFileName);
-        if (_fileSystem.FileExists(descriptorFileName))
+        const string defaultFileName = "buildlink.json";
+        string descriptorFile = Path.Combine(repoRoot, defaultFileName);
+        if (_fileSystem.FileExists(descriptorFile))
         {
             return descriptorFile;
         }
 
-        descriptorFile = Path.Combine(repoRoot, "build", descriptorFileName);
-        if (_fileSystem.FileExists(descriptorFileName))
+        descriptorFile = Path.Combine(repoRoot, "build", defaultFileName);
+        if (_fileSystem.FileExists(descriptorFile))
         {
             return descriptorFile;
         }
 
-        descriptorFile = Path.Combine(repoRoot, "src", descriptorFileName);
-        if (_fileSystem.FileExists(descriptorFileName))
+        descriptorFile = Path.Combine(repoRoot, "src", defaultFileName);
+        if (_fileSystem.FileExists(descriptorFile))
         {
             return descriptorFile;
         }

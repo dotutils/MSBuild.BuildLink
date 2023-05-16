@@ -27,7 +27,7 @@ namespace Microsoft.Build.BuildLink
         internal static readonly Option<VerbosityOptions> s_consoleVerbosityOption = new(
             new string[] { "-v", "--verbosity" },
             () => DefaultConsoleVerbosity,
-            "Sets the verbosity level. Allowed values are q[uiet], m[inimal], n[ormal], and diag[nostic]. [default: normal]")
+            "Sets the verbosity level. Allowed values are q[uiet], m[inimal], n[ormal], and diag[nostic].")
         {
             ArgumentHelpName = "LEVEL"
         };
@@ -35,7 +35,7 @@ namespace Microsoft.Build.BuildLink
         internal static readonly Option<VerbosityOptions> s_fileVerbosityOption = new(
             new string[] { "-fv", "--file-verbosity" },
             () => DefaultFileVerbosity,
-            "Sets the verbosity level for logging into file log. Allowed values are q[uiet], m[inimal], n[ormal], and diag[nostic]. [default: quiet]")
+            "Sets the verbosity level for logging into file log. Allowed values are q[uiet], m[inimal], n[ormal], and diag[nostic].")
         {
             ArgumentHelpName = "FILE_LEVEL",
             // Consider hiding this
@@ -99,7 +99,11 @@ namespace Microsoft.Build.BuildLink
 
             if (consoleLogLevel < LogLevel.None)
             {
-                logging.AddConsole();
+                //logging.AddConsole();
+                logging.AddSimpleConsole(options =>
+                {
+                    options.SingleLine = true;
+                });
             }
 
             // if logging is not specified on command line - try to see if specified in appsettings.json
