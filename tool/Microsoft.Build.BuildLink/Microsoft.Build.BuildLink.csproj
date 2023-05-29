@@ -12,7 +12,7 @@
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <!-- packaging properties -->
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.0.4-alpha</Version>
+    <Version>0.0.6-alpha</Version>
     <Title>BuildLink dotnet tool</Title>
     <PackageId>JanK.BuildLink</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -22,9 +22,37 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+  
+   <ItemGroup>
+    <Content Include="bins/x86/dbgeng.dll" Link="runtimes/win-x86/native/dbgeng.dll">
+      <PackagePath>runtimes/win-x86/native</PackagePath>
+    </Content>
+     <Content Include="bins/x86/dbghelp.dll" Link="runtimes/win-x86/native/dbghelp.dll">
+       <PackagePath>runtimes/win-x86/native</PackagePath>
+     </Content>
+     <Content Include="bins/x86/SymbolCheck.dll" Link="runtimes/win-x86/native/SymbolCheck.dll">
+       <PackagePath>runtimes/win-x86/native</PackagePath>
+     </Content>
+     <Content Include="bins/x86/symchk.exe" Link="runtimes/win-x86/native/symchk.exe">
+       <PackagePath>runtimes/win-x86/native</PackagePath>
+     </Content>
+
+     <Content Include="bins/x64/dbgeng.dll" Link="runtimes/win-x64/native/dbgeng.dll">
+       <PackagePath>runtimes/win-x64/native</PackagePath>
+     </Content>
+     <Content Include="bins/x64/dbghelp.dll" Link="runtimes/win-x64/native/dbghelp.dll">
+       <PackagePath>runtimes/win-x64/native</PackagePath>
+     </Content>
+     <Content Include="bins/x64/SymbolCheck.dll" Link="runtimes/win-x64/native/SymbolCheck.dll">
+       <PackagePath>runtimes/win-x64/native</PackagePath>
+     </Content>
+     <Content Include="bins/x64/symchk.exe" Link="runtimes/win-x64/native/symchk.exe">
+       <PackagePath>runtimes/win-x64/native</PackagePath>
+     </Content>
+   </ItemGroup>  
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
     <!-- <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" /> -->
@@ -50,10 +78,23 @@
 
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="7.0.0" />
+
+    <PackageReference Include="Mono.Cecil" Version="0.11.5" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\docs\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\..\docs\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="bins\x64\" />
+    <Folder Include="bins\x86\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="bins\x86\*.*" Link="%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

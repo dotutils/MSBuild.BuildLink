@@ -6,12 +6,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Build.BuildLink.CommandExecutionUtils
 {
-    internal abstract class ExecutableCommand : TestCommand
+    internal class ExecutableCommand : TestCommand
     {
-        protected abstract string ExecutableFilePath { get; }
+        protected virtual string ExecutableFilePath { get; init; }
 
         internal ExecutableCommand(ILogger log) : base(log)
         { }
+
+        internal ExecutableCommand(ILogger log, string executableFilePath) : base(log)
+        {
+            ExecutableFilePath = executableFilePath;
+        }
 
         //internal ExecutableCommand(ITestOutputHelper log) : base(log)
         //{ }

@@ -14,7 +14,9 @@ using Microsoft.Build.BuildLink.Reporting;
 using Microsoft.Build.BuildLink.SourceCodes;
 using BuildUtils;
 using System.Reflection;
+using Microsoft.Build.BuildLink.CommandExecutionUtils;
 using Microsoft.Extensions.Logging;
+using ICommandExecutor = Microsoft.Build.BuildLink.CommandExecutionUtils.ICommandExecutor;
 
 namespace Microsoft.Build.BuildLink
 {
@@ -46,6 +48,7 @@ namespace Microsoft.Build.BuildLink
                         services.AddSingleton<IBuildDescriptorSerializer, BuildDescriptorSerializer>();
                         services.AddSingleton<IBuildDescriptionFinder, BuildDescriptionFinder>();
                         services.AddSingleton<IFileStreamFactory, FileStreamFactory>();
+                        services.AddSingleton<ICommandExecutor, CommandExecutor>();
                     })
                     .AddCancellationTokenProvider()
                     .ConfigureLogging(logging =>

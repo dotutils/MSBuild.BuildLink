@@ -72,7 +72,7 @@ namespace Microsoft.Build.BuildLink.CommandExecutionUtils
             return psi;
         }
 
-        internal CommandResult Execute(params string[] args)
+        public CommandResult Execute(params string[] args)
         {
             IEnumerable<string> enumerableArgs = args;
             return Execute(enumerableArgs);
