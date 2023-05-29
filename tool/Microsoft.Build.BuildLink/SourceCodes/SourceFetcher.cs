@@ -23,7 +23,7 @@ namespace Microsoft.Build.BuildLink.SourceCodes
 
         public string FetchRepository(RepositoryMetadata repositoryMetadata, string destinationDir)
         {
-            if (repositoryMetadata.Type.Equals("git", StringComparison.InvariantCultureIgnoreCase) &&
+            if (repositoryMetadata.Type.Equals("git", StringComparison.InvariantCultureIgnoreCase) ||
                 repositoryMetadata.Type.Equals("github", StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new BuildLinkException($"Unsupported repository type: {repositoryMetadata.Type}",
