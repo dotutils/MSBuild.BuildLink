@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Microsoft.Build.BuildLink.CommandExecutionUtils
+namespace DotUtils.MsBuild.BuildLink.CommandExecutionUtils
 {
     internal class Command
     {
