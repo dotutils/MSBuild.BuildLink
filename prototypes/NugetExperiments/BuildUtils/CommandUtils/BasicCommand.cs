@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
-namespace Microsoft.Build.BuildLink.CommandExecutionUtils
+namespace DotUtils.MsBuild.BuildLink.CommandExecutionUtils
 {
     internal class BasicCommand : TestCommand
     {

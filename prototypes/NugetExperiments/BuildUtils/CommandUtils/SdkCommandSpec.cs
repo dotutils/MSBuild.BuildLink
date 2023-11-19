@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Microsoft.Build.BuildLink.CommandExecutionUtils
+namespace DotUtils.MsBuild.BuildLink.CommandExecutionUtils
 {
     internal class SdkCommandSpec
     {
